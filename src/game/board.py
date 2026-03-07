@@ -83,3 +83,13 @@ class ChessBoard:
             file = FILES[i]
             self.board[f"{file}1"] = piece_class(COLOR["white"], f"{file}1")
             self.board[f"{file}8"] = piece_class(COLOR["black"], f"{file}8")
+    
+    def get_board_snapshot(self):
+        """Get a snapshot of the current board state for threefold repetition detection."""
+        snapshot = {}
+        for position, piece in self.board.items():
+            if piece is not None:
+                snapshot[position] = (piece.type, piece.color)
+            else:
+                snapshot[position] = None
+        return snapshot

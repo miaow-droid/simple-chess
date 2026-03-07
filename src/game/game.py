@@ -4,11 +4,16 @@ from utils.constants import COLOR
 from game.piece import Queen, Rook, Bishop, Knight
 
 class Game:
-    def __init__(self):
+    def __init__(self, enable_fifty_move_rule=True):
         self.board = ChessBoard()
         self.rules = StandardChessRules(self.board)
         self.current_turn = COLOR["white"]  # White starts first
         self.game_over = False
+        self.is_draw = False  # Flag to indicate if the game ended in a draw
+        self.draw_reason = None  # Reason for the draw (e.g., stalemate, insufficient material, etc.)
+        self.halfmove_clock = 0  # Count of half-moves since the last pawn move or capture (for fifty-move rule)
+        self.enable_fifty_move_rule = enable_fifty_move_rule  # Flag to enable or disable the fifty-move rule
+        self.position_history = []  # List to keep track of board positions for threefold repetition detection
         self.last_move = None   # Initialize last_move to None
                                 # "piece_type": piece.type,
                                 # "piece_color": piece.color,
@@ -71,6 +76,27 @@ class Game:
             if int(to_position[1]) == promotion_rank:
                 self.promotion(to_position, promotion_choice)
 
+        # Check for check, checkmate, and stalemate
+
+        self.log_position()  # Log the current position for threefold repetition detection
+        if self.check_threefold_repetition():
+            self.game_over = True
+            self.is_draw = True
+            self.draw_reason = "Threefold repetition"
+            print("Draw by threefold repetition.")
+
+        if self.enable_fifty_move_rule and self.halfmove_clock >= 100:
+            self.game_over = True
+            self.is_draw = True
+            self.draw_reason = "Fifty-move rule"
+            print("Draw by fifty-move rule.")
+
+        if self.check_insufficient_material():
+            self.game_over = True
+            self.is_draw = True
+            self.draw_reason = "Insufficient material"
+            print("Draw due to insufficient material.")
+
         if self.in_check(self.opponent_color()):
             if self.checkmate(self.opponent_color()):
                 self.game_over = True
@@ -80,10 +106,13 @@ class Game:
         
         if self.stalemate(self.opponent_color()):
             self.game_over = True
+            self.is_draw = True
+            self.draw_reason = "Stalemate"
             print("Stalemate! The game is a draw.")
                 
         if not self.game_over:
             self.switch_turn()
+            self.halfmove_clock = self.halfmove_clock + 1 if piece.type != "P" and captured_piece is None else 0
 
 
 
@@ -118,9 +147,14 @@ class Game:
         """Reset the game to the initial state."""
         self.board = ChessBoard()
         self.rules = StandardChessRules(self.board)
-        self.current_turn = COLOR["white"]
+        self.current_turn = COLOR["white"]  
         self.game_over = False
-        self.last_move = None
+        self.is_draw = False  
+        self.draw_reason = None  
+        self.halfmove_clock = 0  
+        self.enable_fifty_move_rule = self.enable_fifty_move_rule
+        self.position_history = []
+        self.last_move = None  
 
     def find_king(self, color):
         """Find the king piece of the specified color."""
@@ -303,3 +337,32 @@ class Game:
         
         # Replace the pawn with the new piece on the board
         self.board.set_piece_at(pawn_position, new_piece)
+    
+    def log_position(self):
+        """Log the current board position for threefold repetition detection."""
+        position_snapshot = self.board.get_board_snapshot()
+        self.position_history.append(position_snapshot)
+
+    def check_threefold_repetition(self):
+        """Check if the current position has occurred three times."""
+        current_snapshot = self.board.get_board_snapshot()
+        occurrences = sum(1 for snapshot in self.position_history if snapshot == current_snapshot)
+        return occurrences >= 3
+    
+    #check for insufficient material for checkmate
+    def check_insufficient_material(self):
+        """Check if the game is a draw due to insufficient material."""
+        pieces = [piece for piece in self.board.board.values() if piece is not None]
+        if len(pieces) == 2:
+            return True  # Only kings left
+        elif len(pieces) == 3:
+            # One side has a king and the other has a king and a minor piece (bishop or knight)
+            minor_pieces = [piece for piece in pieces if piece.type in ["B", "N"]]
+            return len(minor_pieces) == 1
+        elif len(pieces) == 4:
+            # Both sides have only kings and bishops, and both bishops are on the same color
+            bishops = [piece for piece in pieces if piece.type == "B"]
+            if len(bishops) == 2:
+                bishop_colors = [self.get_square_color(piece.position) for piece in bishops]
+                return bishop_colors[0] == bishop_colors[1]
+        return False

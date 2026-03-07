@@ -296,6 +296,7 @@ class TestStalemateDetection(unittest.TestCase):
 
         self.assertFalse(self.game.in_check(COLOR["black"]))
         self.assertTrue(self.game.stalemate(COLOR["black"]))
+        self.assertEqual(self.game.get_all_valid_moves(COLOR["black"]), [])
 
     def test_not_stalemate_when_legal_move_exists(self):
         """Black has at least one legal move (a8 -> a7), so no stalemate."""
@@ -328,8 +329,30 @@ class TestStalemateDetection(unittest.TestCase):
         self.game.make_move("d7", "c7")
 
         self.assertTrue(self.game.game_over)
+        self.assertTrue(self.game.is_draw)
+        self.assertEqual(self.game.draw_reason, "Stalemate")
         self.assertTrue(self.game.stalemate(COLOR["black"]))
         self.assertEqual(self.game.current_turn, COLOR["white"])
+
+    def test_cannot_move_after_stalemate_draw(self):
+        """After stalemate ends the game, further moves are rejected."""
+        self._clear_board()
+
+        black_king = King(COLOR["black"], "a8")
+        white_king = King(COLOR["white"], "c6")
+        white_queen = Queen(COLOR["white"], "d7")
+
+        self.game.board.set_piece_at("a8", black_king)
+        self.game.board.set_piece_at("c6", white_king)
+        self.game.board.set_piece_at("d7", white_queen)
+        self.game.current_turn = COLOR["white"]
+
+        self.game.make_move("d7", "c7")
+
+        with self.assertRaises(ValueError) as context:
+            self.game.make_move("a8", "a7")
+
+        self.assertIn("game is over", str(context.exception).lower())
 
     def test_stalemate_false_when_in_check(self):
         """A checked king cannot be stalemated."""
