@@ -22,14 +22,23 @@ A functional chess game with the following requirements:
 ### 2.1 MVP (Minimum Viable Product)
 <!-- List the essential features needed for a working chess game -->
 
-- [x] Display a chess board in a Tkinter window
+- [ ] Display a chess board in a Tkinter window
 - [x] Move pieces with standard chess rules
-- [x] Human vs Human gameplay
-- [x] Game status display (check, checkmate, stalemate)
+- [x] Human vs Human gameplay (core logic ready)
+- [x] Game status display (check, checkmate, stalemate detection implemented)
 - [x] Undo/Reset game functionality
 - [x] Architecture ready for AI integration
 
-### 2.2 Future Features
+### 2.2 Current Implementation Status (Phase 2 Complete)
+- [x] All piece movement rules implemented and tested
+- [x] Check detection working
+- [x] Checkmate detection with automatic game end
+- [x] Stalemate detection with automatic game end
+- [x] Move validation prevents self-check
+- [x] Unit tests: 20+ tests passing
+- [ ] Special moves: Castling, En Passant, Pawn Promotion (pending)
+
+### 2.3 Future Features
 <!-- Nice-to-have features for later versions -->
 
 - [ ] AI opponent (Stockfish integration)
@@ -145,26 +154,26 @@ The window will display the chess board and game interface with no command-line 
 ### 7.1 Phase 1: Project Setup & Core Data Structures
 <!-- Initial project structure and basic pieces -->
 
-- [ ] Create folder structure (gui/, game/, ai/, utils/)
-- [ ] Create Piece class (base class for all pieces)
-- [ ] Create specific piece classes (Pawn, Rook, Knight, Bishop, Queen, King)
-- [ ] Create ChessBoard class with 8x8 grid
-- [ ] Create basic Game class to manage game state
-- [ ] Add piece constants and colors (White/Black)
-- [ ] Create initial board setup (pieces in starting positions)
-- [ ] Test data structures with print statements
+- [x] Create folder structure (gui/, game/, ai/, utils/)
+- [x] Create Piece class (base class for all pieces)
+- [x] Create specific piece classes (Pawn, Rook, Knight, Bishop, Queen, King)
+- [x] Create ChessBoard class with 8x8 grid
+- [x] Create basic Game class to manage game state
+- [x] Add piece constants and colors (White/Black)
+- [x] Create initial board setup (pieces in starting positions)
+- [x] Test data structures with print statements
 
 ### 7.2 Phase 2: Game Logic & Move Validation
 <!-- Implement board and move validation -->
 
-- [ ] Implement move validation for each piece type
-- [ ] Implement blocking logic (pieces can't move through obstacles)
+- [x] Implement move validation for each piece type
+- [x] Implement blocking logic (pieces can't move through obstacles)
 - [ ] Implement special moves (Castling, En Passant, Promotion)
-- [ ] Implement check detection
-- [ ] Implement checkmate detection
-- [ ] Implement stalemate detection
-- [ ] Implement move history/undo functionality
-- [ ] Test game logic with unit tests
+- [x] Implement check detection
+- [x] Implement checkmate detection
+- [x] Implement stalemate detection
+- [x] Implement move history/undo functionality
+- [x] Test game logic with unit tests (20+ passing)
 
 ### 7.3 Phase 3: GUI & User Interaction
 <!-- Add UI and player interaction -->
