@@ -518,6 +518,158 @@ class TestEnPassantExecution(unittest.TestCase):
         # Verify white pawn was removed from d4
         self.assertIsNone(self.game.board.get_piece_at("d4"))
 
+
+class TestPromotion(unittest.TestCase):
+    def setUp(self):
+        self.game = Game()
+
+    def _clear_board(self):
+        for square in self.game.board.board.keys():
+            self.game.board.remove_piece_at(square)
+
+    def test_white_pawn_promotes_to_queen_on_8th_rank(self):
+        """Test white pawn auto-promotes to queen when reaching 8th rank."""
+        self._clear_board()
+
+        from game.piece import Pawn, King
+        white_pawn = Pawn(COLOR["white"], "e7")
+        white_king = King(COLOR["white"], "e1")
+        black_king = King(COLOR["black"], "e8")
+
+        self.game.board.set_piece_at("e7", white_pawn)
+        self.game.board.set_piece_at("e1", white_king)
+        self.game.board.set_piece_at("a8", black_king)  # Move black king out of the way
+
+        white_pawn.has_moved = True
+        self.game.current_turn = COLOR["white"]
+
+        # Move pawn from e7 to e8 (promotion)
+        self.game.make_move("e7", "e8")
+
+        # Check that square now has a Queen
+        promoted_piece = self.game.board.get_piece_at("e8")
+        self.assertIsNotNone(promoted_piece)
+        self.assertEqual(promoted_piece.type, "Q")
+        self.assertEqual(promoted_piece.color, COLOR["white"])
+
+    def test_black_pawn_promotes_to_queen_on_1st_rank(self):
+        """Test black pawn auto-promotes to queen when reaching 1st rank."""
+        self._clear_board()
+
+        from game.piece import Pawn, King
+        black_pawn = Pawn(COLOR["black"], "e2")
+        white_king = King(COLOR["white"], "a1")
+        black_king = King(COLOR["black"], "e8")
+
+        self.game.board.set_piece_at("e2", black_pawn)
+        self.game.board.set_piece_at("a1", white_king)
+        self.game.board.set_piece_at("e8", black_king)
+
+        black_pawn.has_moved = True
+        self.game.current_turn = COLOR["black"]
+
+        # Move pawn from e2 to e1 (promotion)
+        self.game.make_move("e2", "e1")
+
+        # Check that square now has a Queen
+        promoted_piece = self.game.board.get_piece_at("e1")
+        self.assertIsNotNone(promoted_piece)
+        self.assertEqual(promoted_piece.type, "Q")
+        self.assertEqual(promoted_piece.color, COLOR["black"])
+
+    def test_promotion_with_capture(self):
+        """Test pawn can promote when capturing on promotion rank."""
+        self._clear_board()
+
+        from game.piece import Pawn, King, Rook
+        white_pawn = Pawn(COLOR["white"], "e7")
+        black_rook = Rook(COLOR["black"], "d8")
+        white_king = King(COLOR["white"], "e1")
+        black_king = King(COLOR["black"], "h8")
+
+        self.game.board.set_piece_at("e7", white_pawn)
+        self.game.board.set_piece_at("d8", black_rook)
+        self.game.board.set_piece_at("e1", white_king)
+        self.game.board.set_piece_at("h8", black_king)
+
+        white_pawn.has_moved = True
+        self.game.current_turn = COLOR["white"]
+
+        # Capture rook and promote
+        self.game.make_move("e7", "d8", "Q")
+
+        # Check promotion happened
+        promoted_piece = self.game.board.get_piece_at("d8")
+        self.assertIsNotNone(promoted_piece)
+        self.assertEqual(promoted_piece.type, "Q")
+        self.assertEqual(promoted_piece.color, COLOR["white"])
+
+    def test_promotion_to_knight(self):
+        """Test pawn can promote to knight."""
+        self._clear_board()
+
+        from game.piece import Pawn, King
+        white_pawn = Pawn(COLOR["white"], "e7")
+        white_king = King(COLOR["white"], "e1")
+        black_king = King(COLOR["black"], "a8")
+
+        self.game.board.set_piece_at("e7", white_pawn)
+        self.game.board.set_piece_at("e1", white_king)
+        self.game.board.set_piece_at("a8", black_king)
+
+        white_pawn.has_moved = True
+        self.game.current_turn = COLOR["white"]
+
+        # Promote to knight
+        self.game.make_move("e7", "e8", "N")
+
+        promoted_piece = self.game.board.get_piece_at("e8")
+        self.assertEqual(promoted_piece.type, "N")
+
+    def test_promotion_to_rook(self):
+        """Test pawn can promote to rook."""
+        self._clear_board()
+
+        from game.piece import Pawn, King
+        white_pawn = Pawn(COLOR["white"], "e7")
+        white_king = King(COLOR["white"], "e1")
+        black_king = King(COLOR["black"], "a8")
+
+        self.game.board.set_piece_at("e7", white_pawn)
+        self.game.board.set_piece_at("e1", white_king)
+        self.game.board.set_piece_at("a8", black_king)
+
+        white_pawn.has_moved = True
+        self.game.current_turn = COLOR["white"]
+
+        # Promote to rook
+        self.game.make_move("e7", "e8", "R")
+
+        promoted_piece = self.game.board.get_piece_at("e8")
+        self.assertEqual(promoted_piece.type, "R")
+
+    def test_promotion_to_bishop(self):
+        """Test pawn can promote to bishop."""
+        self._clear_board()
+
+        from game.piece import Pawn, King
+        white_pawn = Pawn(COLOR["white"], "e7")
+        white_king = King(COLOR["white"], "e1")
+        black_king = King(COLOR["black"], "a8")
+
+        self.game.board.set_piece_at("e7", white_pawn)
+        self.game.board.set_piece_at("e1", white_king)
+        self.game.board.set_piece_at("a8", black_king)
+
+        white_pawn.has_moved = True
+        self.game.current_turn = COLOR["white"]
+
+        # Promote to bishop
+        self.game.make_move("e7", "e8", "B")
+
+        promoted_piece = self.game.board.get_piece_at("e8")
+        self.assertEqual(promoted_piece.type, "B")
+
     def test_en_passant_blocked_if_would_expose_king(self):
         """Test that en passant is rejected if it would expose the king to check."""
         self._clear_board()

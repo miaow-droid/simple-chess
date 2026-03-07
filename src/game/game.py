@@ -17,7 +17,7 @@ class Game:
                                 # "captured_piece": captured_piece if captured_piece else None,
                                 # "was_two_square_pawn_move": was_two_square_pawn_move
 
-    def make_move(self, from_position, to_position, promotion_choice=None):
+    def make_move(self, from_position, to_position, promotion_choice="Q"):
         """Make a move on the board if it's valid."""
         castled = False
         en_passant = False
@@ -236,7 +236,7 @@ class Game:
                 if self.rules.is_valid_move(from_position, position, self.last_move):
                     return True
                 elif piece.type == "P":  # Special case for pawn attacks
-                    if self.rules.is_valid_pawn_attack(piece, from_position, position, self.last_move):
+                    if self.rules.is_valid_pawn_attack(piece, from_position, position):
                         return True
         return False
     
