@@ -1,6 +1,7 @@
 import unittest
 
 from game.game import Game
+from game.piece import Rook, King, Pawn, Queen, Bishop
 from utils.constants import COLOR
 
 
@@ -58,6 +59,292 @@ class TestGameFlow(unittest.TestCase):
     def test_invalid_destination_square_raises_error(self):
         with self.assertRaises(ValueError):
             self.game.make_move("e2", "e9")
+
+
+class TestCheckDetection(unittest.TestCase):
+    def setUp(self):
+        self.game = Game()
+
+    def test_in_check_false_in_start_position(self):
+        """No check at game start."""
+        self.assertFalse(self.game.in_check(COLOR["white"]))
+        self.assertFalse(self.game.in_check(COLOR["black"]))
+
+    def test_in_check_true_rook_on_open_file(self):
+        """White king in check from black rook on open file."""
+        # Clear board and set up check scenario
+        for square in self.game.board.board.keys():
+            self.game.board.remove_piece_at(square)
+        
+        # Place white king on e1, black rook on e8, black king on a8
+        white_king = King(COLOR["white"], "e1")
+        black_rook = Rook(COLOR["black"], "e8")
+        black_king = King(COLOR["black"], "a8")
+        
+        self.game.board.set_piece_at("e1", white_king)
+        self.game.board.set_piece_at("e8", black_rook)
+        self.game.board.set_piece_at("a8", black_king)
+        
+        self.assertTrue(self.game.in_check(COLOR["white"]))
+        self.assertFalse(self.game.in_check(COLOR["black"]))
+
+    def test_in_check_false_when_attack_blocked(self):
+        """White king NOT in check when pawn blocks rook."""
+        # Clear board
+        for square in self.game.board.board.keys():
+            self.game.board.remove_piece_at(square)
+        
+        # Place white king on e1, black rook on e8, white pawn on e4, black king on a8
+        white_king = King(COLOR["white"], "e1")
+        black_rook = Rook(COLOR["black"], "e8")
+        white_pawn = Pawn(COLOR["white"], "e4")
+        black_king = King(COLOR["black"], "a8")
+        
+        self.game.board.set_piece_at("e1", white_king)
+        self.game.board.set_piece_at("e8", black_rook)
+        self.game.board.set_piece_at("e4", white_pawn)
+        self.game.board.set_piece_at("a8", black_king)
+        
+        self.assertFalse(self.game.in_check(COLOR["white"]))
+        self.assertFalse(self.game.in_check(COLOR["black"]))
+
+
+class TestCheckmateDetection(unittest.TestCase):
+    def setUp(self):
+        self.game = Game()
+
+    def test_back_rank_checkmate(self):
+        """Test back rank checkmate scenario: trapped king with pawns blocking escape."""
+        # Clear board
+        for square in self.game.board.board.keys():
+            self.game.board.remove_piece_at(square)
+        
+        # Set up back rank mate: King on g1, trapped by pawns on f2/g2/h2
+        # Black rook on a1 delivers checkmate along the first rank
+        white_king = King(COLOR["white"], "g1")
+        white_pawn_f = Pawn(COLOR["white"], "f2")
+        white_pawn_g = Pawn(COLOR["white"], "g2")
+        white_pawn_h = Pawn(COLOR["white"], "h2")
+        black_rook = Rook(COLOR["black"], "a1")
+        black_king = King(COLOR["black"], "a8")
+        
+        self.game.board.set_piece_at("g1", white_king)
+        self.game.board.set_piece_at("f2", white_pawn_f)
+        self.game.board.set_piece_at("g2", white_pawn_g)
+        self.game.board.set_piece_at("h2", white_pawn_h)
+        self.game.board.set_piece_at("a1", black_rook)
+        self.game.board.set_piece_at("a8", black_king)
+        
+        # White is in check
+        self.assertTrue(self.game.in_check(COLOR["white"]))
+        
+        # White is in checkmate - no legal moves escape check
+        self.assertTrue(self.game.checkmate(COLOR["white"]))
+
+    def test_check_but_not_checkmate(self):
+        """Test scenario where king is in check but can escape."""
+        # Clear board
+        for square in self.game.board.board.keys():
+            self.game.board.remove_piece_at(square)
+        
+        # White king on e4 in open space, black rook on e8
+        white_king = King(COLOR["white"], "e4")
+        black_rook = Rook(COLOR["black"], "e8")
+        black_king = King(COLOR["black"], "a8")
+        
+        self.game.board.set_piece_at("e4", white_king)
+        self.game.board.set_piece_at("e8", black_rook)
+        self.game.board.set_piece_at("a8", black_king)
+        
+        # White is in check
+        self.assertTrue(self.game.in_check(COLOR["white"]))
+        
+        # But it's not checkmate - king can escape to d3, d4, d5, f3, f4, f5
+        self.assertFalse(self.game.checkmate(COLOR["white"]))
+
+    def test_cannot_move_into_check(self):
+        """Test that you cannot make a move that puts your own king in check."""
+        # Clear board
+        for square in self.game.board.board.keys():
+            self.game.board.remove_piece_at(square)
+        
+        # White king on e1, white rook on e2 (blocking check), black rook on e8
+        white_king = King(COLOR["white"], "e1")
+        white_rook = Rook(COLOR["white"], "e2")
+        black_rook = Rook(COLOR["black"], "e8")
+        black_king = King(COLOR["black"], "a8")
+        
+        self.game.board.set_piece_at("e1", white_king)
+        self.game.board.set_piece_at("e2", white_rook)
+        self.game.board.set_piece_at("e8", black_rook)
+        self.game.board.set_piece_at("a8", black_king)
+        
+        self.game.current_turn = COLOR["white"]
+        
+        # Rook is blocking check - moving it away from the file should be illegal
+        with self.assertRaises(ValueError) as context:
+            self.game.make_move("e2", "a2")
+        
+        # Should raise error about exposing king to check
+        self.assertIn("check", str(context.exception).lower())
+
+    def test_block_check_with_piece(self):
+        """Test that you can block a check by interposing a piece."""
+        # Clear board
+        for square in self.game.board.board.keys():
+            self.game.board.remove_piece_at(square)
+        
+        # White king on e1, white rook on a4, black rook on e8
+        white_king = King(COLOR["white"], "e1")
+        white_rook = Rook(COLOR["white"], "a4")
+        black_rook = Rook(COLOR["black"], "e8")
+        black_king = King(COLOR["black"], "a8")
+        
+        self.game.board.set_piece_at("e1", white_king)
+        self.game.board.set_piece_at("a4", white_rook)
+        self.game.board.set_piece_at("e8", black_rook)
+        self.game.board.set_piece_at("a8", black_king)
+        
+        self.game.current_turn = COLOR["white"]
+        
+        # White is in check
+        self.assertTrue(self.game.in_check(COLOR["white"]))
+        
+        # White can block by moving rook to e4
+        self.game.make_move("a4", "e4")
+        
+        # Turn switches to black - white is no longer in check
+        self.assertEqual(self.game.current_turn, COLOR["black"])
+
+    def test_capture_checking_piece(self):
+        """Test escaping check by capturing the attacking piece."""
+        # Clear board
+        for square in self.game.board.board.keys():
+            self.game.board.remove_piece_at(square)
+        
+        # White king on e1, white queen on d7, black rook on e8
+        white_king = King(COLOR["white"], "e1")
+        white_queen = Queen(COLOR["white"], "d7")
+        black_rook = Rook(COLOR["black"], "e8")
+        black_king = King(COLOR["black"], "a8")
+        
+        self.game.board.set_piece_at("e1", white_king)
+        self.game.board.set_piece_at("d7", white_queen)
+        self.game.board.set_piece_at("e8", black_rook)
+        self.game.board.set_piece_at("a8", black_king)
+        
+        self.game.current_turn = COLOR["white"]
+        
+        # White is in check (rook attacks king on e-file)
+        self.assertTrue(self.game.in_check(COLOR["white"]))
+        
+        # White can capture the checking rook with queen (diagonal move)
+        self.game.make_move("d7", "e8")
+        
+        # Check is resolved
+        self.assertEqual(self.game.current_turn, COLOR["black"])
+
+    def test_fools_mate(self):
+        """Test the shortest checkmate: Fool's Mate in 2 moves."""
+        # f3, e5, g4, Qh4# 
+        self.game.make_move("f2", "f3")
+        self.game.make_move("e7", "e5")
+        self.game.make_move("g2", "g4")
+        self.game.make_move("d8", "h4")
+        
+        # White should be in checkmate
+        self.assertTrue(self.game.in_check(COLOR["white"]))
+        self.assertTrue(self.game.checkmate(COLOR["white"]))
+        self.assertTrue(self.game.game_over)
+
+    def test_scholars_mate(self):
+        """Test Scholar's Mate checkmate pattern."""
+        # e4, e5, Bc4, Nc6, Qh5, Nf6?, Qxf7#
+        self.game.make_move("e2", "e4")
+        self.game.make_move("e7", "e5")
+        self.game.make_move("f1", "c4")
+        self.game.make_move("b8", "c6")
+        self.game.make_move("d1", "h5")
+        self.game.make_move("g8", "f6")
+        self.game.make_move("h5", "f7")
+        
+        # Black should be in checkmate
+        self.assertTrue(self.game.in_check(COLOR["black"]))
+        self.assertTrue(self.game.checkmate(COLOR["black"]))
+        self.assertTrue(self.game.game_over)
+
+
+class TestStalemateDetection(unittest.TestCase):
+    def setUp(self):
+        self.game = Game()
+
+    def _clear_board(self):
+        for square in self.game.board.board.keys():
+            self.game.board.remove_piece_at(square)
+
+    def test_classic_stalemate_position(self):
+        """Black to move: king on a8 with no legal moves, but not in check."""
+        self._clear_board()
+
+        black_king = King(COLOR["black"], "a8")
+        white_king = King(COLOR["white"], "c6")
+        white_queen = Queen(COLOR["white"], "c7")
+
+        self.game.board.set_piece_at("a8", black_king)
+        self.game.board.set_piece_at("c6", white_king)
+        self.game.board.set_piece_at("c7", white_queen)
+
+        self.assertFalse(self.game.in_check(COLOR["black"]))
+        self.assertTrue(self.game.stalemate(COLOR["black"]))
+
+    def test_not_stalemate_when_legal_move_exists(self):
+        """Black has at least one legal move (a8 -> a7), so no stalemate."""
+        self._clear_board()
+
+        black_king = King(COLOR["black"], "a8")
+        white_king = King(COLOR["white"], "c6")
+        white_queen = Queen(COLOR["white"], "d6")
+
+        self.game.board.set_piece_at("a8", black_king)
+        self.game.board.set_piece_at("c6", white_king)
+        self.game.board.set_piece_at("d6", white_queen)
+
+        self.assertFalse(self.game.in_check(COLOR["black"]))
+        self.assertFalse(self.game.stalemate(COLOR["black"]))
+
+    def test_make_move_sets_game_over_on_stalemate(self):
+        """A move that creates stalemate should end the game without switching turns."""
+        self._clear_board()
+
+        black_king = King(COLOR["black"], "a8")
+        white_king = King(COLOR["white"], "c6")
+        white_queen = Queen(COLOR["white"], "d7")
+
+        self.game.board.set_piece_at("a8", black_king)
+        self.game.board.set_piece_at("c6", white_king)
+        self.game.board.set_piece_at("d7", white_queen)
+        self.game.current_turn = COLOR["white"]
+
+        self.game.make_move("d7", "c7")
+
+        self.assertTrue(self.game.game_over)
+        self.assertTrue(self.game.stalemate(COLOR["black"]))
+        self.assertEqual(self.game.current_turn, COLOR["white"])
+
+    def test_stalemate_false_when_in_check(self):
+        """A checked king cannot be stalemated."""
+        self._clear_board()
+
+        black_king = King(COLOR["black"], "a8")
+        white_king = King(COLOR["white"], "c6")
+        white_rook = Rook(COLOR["white"], "a1")
+
+        self.game.board.set_piece_at("a8", black_king)
+        self.game.board.set_piece_at("c6", white_king)
+        self.game.board.set_piece_at("a1", white_rook)
+
+        self.assertTrue(self.game.in_check(COLOR["black"]))
+        self.assertFalse(self.game.stalemate(COLOR["black"]))
 
 
 if __name__ == "__main__":
