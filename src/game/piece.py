@@ -1,11 +1,5 @@
-from utils.constants import PIECE_TYPES, COLOR, BOARD_SIZE, FILES, RANKS, PIECE_SYMBOLS
+from utils.constants import PIECE_TYPES, PIECE_SYMBOLS
 
-color = COLOR
-type = PIECE_TYPES
-posistion = {
-    "file": FILES,
-    "rank": RANKS
-}
 piece_symbols = PIECE_SYMBOLS
 
 class Piece():
@@ -21,29 +15,29 @@ class Piece():
 class Pawn(Piece):
     def __init__(self, color, position):
         super().__init__(color, position)
-        self.type = type["pawn"]
+        self.type = PIECE_TYPES["pawn"]
 
 class Knight(Piece):
     def __init__(self, color, position):
         super().__init__(color, position)
-        self.type = type["knight"]
+        self.type = PIECE_TYPES["knight"]
 
 class Bishop(Piece):
     def __init__(self, color, position):
         super().__init__(color, position)
-        self.type = type["bishop"]
+        self.type = PIECE_TYPES["bishop"]
 
 class Rook(Piece):
     def __init__(self, color, position):
         super().__init__(color, position)
-        self.type = type["rook"]
+        self.type = PIECE_TYPES["rook"]
 
 class Queen(Piece):
     def __init__(self, color, position):
         super().__init__(color, position)
-        self.type = type["queen"]
+        self.type = PIECE_TYPES["queen"]
 
 class King(Piece):
     def __init__(self, color, position):
         super().__init__(color, position)
-        self.type = type["king"]
+        self.type = PIECE_TYPES["king"]

@@ -1,4 +1,5 @@
 from game.board import ChessBoard
+from utils.constants import FILES, RANKS, COLOR
 
 class StandardChessRules:
     def __init__(self, chess_board: ChessBoard):
@@ -41,23 +42,23 @@ class StandardChessRules:
     # Placeholder methods for specific piece movement rules
     def is_valid_pawn_move(self, pawn, from_position, to_position):
         if from_position[0] == to_position[0]:  # Same file
-            if pawn.color == "W" and self.board.get_piece_at(to_position) is None:
+            if pawn.color == COLOR["white"] and self.board.get_piece_at(to_position) is None:
                 if from_position[1] == '2' and to_position[1] == '4' and self.board.get_piece_at(f"{from_position[0]}3") is None:
                     return True  # Initial two-square move
                 elif int(to_position[1]) - int(from_position[1]) == 1:
                     return True  # Normal one-square move
-            elif pawn.color == "B" and self.board.get_piece_at(to_position) is None:
+            elif pawn.color == COLOR["black"] and self.board.get_piece_at(to_position) is None:
                 if from_position[1] == '7' and to_position[1] == '5' and self.board.get_piece_at(f"{from_position[0]}6") is None:
                     return True  # Initial two-square move
                 elif int(from_position[1]) - int(to_position[1]) == 1:
                     return True  # Normal one-square move
         elif abs(ord(from_position[0]) - ord(to_position[0])) == 1:  # Diagonal capture
-            if pawn.color == "W" and int(to_position[1]) - int(from_position[1]) == 1:
-                if self.board.is_position_occupied(to_position) and self.board.get_piece_at(to_position).color == "B":
+            if pawn.color == COLOR["white"] and int(to_position[1]) - int(from_position[1]) == 1:
+                if self.board.is_position_occupied(to_position) and self.board.get_piece_at(to_position).color == COLOR["black"]:
                         return True  # Capture move
                 # en passant capture for white pawns
-            elif pawn.color == "B" and int(from_position[1]) - int(to_position[1]) == 1:
-                if self.board.is_position_occupied(to_position) and self.board.get_piece_at(to_position).color == "W":
+            elif pawn.color == COLOR["black"] and int(from_position[1]) - int(to_position[1]) == 1:
+                if self.board.is_position_occupied(to_position) and self.board.get_piece_at(to_position).color == COLOR["white"]:
                     return True  # Capture move
                 # en passant capture for black pawns
         return False

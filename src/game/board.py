@@ -1,4 +1,4 @@
-from utils.constants import FILES, RANKS
+from utils.constants import FILES, RANKS, COLOR
 from game.piece import Piece, Pawn, Knight, Bishop, Rook, Queen, King
 
 class ChessBoard:
@@ -74,12 +74,12 @@ class ChessBoard:
         """Load the standard chess setup with all pieces in their starting positions."""
         # Place pawns
         for file in FILES:
-            self.board[f"{file}2"] = Pawn("white", f"{file}2")
-            self.board[f"{file}7"] = Pawn("black", f"{file}7")
+            self.board[f"{file}2"] = Pawn(COLOR["white"], f"{file}2")
+            self.board[f"{file}7"] = Pawn(COLOR["black"], f"{file}7")
 
         back_row = [Rook, Knight, Bishop, Queen, King, Bishop, Knight, Rook]
         # Place back row pieces for white
         for i, piece_class in enumerate(back_row):
             file = FILES[i]
-            self.board[f"{file}1"] = piece_class("white", f"{file}1")
-            self.board[f"{file}8"] = piece_class("black", f"{file}8")
+            self.board[f"{file}1"] = piece_class(COLOR["white"], f"{file}1")
+            self.board[f"{file}8"] = piece_class(COLOR["black"], f"{file}8")
