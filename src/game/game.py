@@ -407,11 +407,18 @@ class Game:
             minor_pieces = [piece for piece in pieces if piece.type in ["B", "N"]]
             return len(minor_pieces) == 1
         elif len(pieces) == 4:
-            # Both sides have only kings and bishops, and both bishops are on the same color
+            # Both sides have only kings and bishops or knights or bishop and a knight, and both bishops are on the same color
             bishops = [piece for piece in pieces if piece.type == "B"]
             if len(bishops) == 2:
+                # Check if both bishops are on the same color square
                 bishop_colors = [self.board.get_square_color(piece.position) for piece in bishops]
                 return bishop_colors[0] == bishop_colors[1]
+            knights = [piece for piece in pieces if piece.type == "N"]
+            if len(knights) == 2:
+                return True  # Two knights cannot checkmate
+            if len(bishops) == 1 and len(knights) == 1:
+                return True  # Bishop and knight cannot checkmate
+            
         return False
     
     # SAN-Lite Builder, generates simplified SAN notation
