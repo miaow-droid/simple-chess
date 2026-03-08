@@ -1,3 +1,5 @@
+from game import piece
+
 from .board import ChessBoard
 from .standard_chess_rules import StandardChessRules
 from utils.constants import COLOR
@@ -117,24 +119,29 @@ class Game:
             self.is_draw = True
             self.draw_reason = "Stalemate"
             # print("Stalemate! The game is a draw.")
-
-        self.move_history.append({
-            "san": self.generate_san_lite(
-                from_position, 
-                to_position, piece, 
-                captured_piece, 
-                promotion_choice, 
-                castled, 
-                en_passant, 
-                self.is_draw,
-                self.is_in_check,
-                is_checkmate,
-                was_promotion
-                ),
+        
+        move_info = {
+            "piece": piece,
             "from": from_position,
             "to": to_position,
-            "piece": piece,
             "captured_piece": captured_piece,
+            "was_castling": castled,
+            "was_promotion": was_promotion,
+            "promotion_choice": promotion_choice,
+            "was_en_passant": en_passant,
+            "is_draw": self.is_draw,
+            "is_in_check": self.is_in_check,
+            "is_checkmate": is_checkmate
+        }
+
+        self.move_history.append({
+            "san": self.generate_san_lite(**move_info),
+            "from": from_position,
+            "to": to_position,
+            "piece_type": piece.type,
+            "piece_color": piece.color,
+            "captured_piece_type": captured_piece.type if captured_piece else None,
+            "captured_piece_color": captured_piece.color if captured_piece else None,
             "promotion_choice": promotion_choice,
             "was_castling": castled,
             "was_en_passant": en_passant,
@@ -406,42 +413,43 @@ class Game:
         return False
     
     # SAN-Lite Builder, generates simplified SAN notation
-    def generate_san_lite(self, 
-                          from_position, 
-                          to_position, 
-                          piece, 
-                          captured_piece=None, 
-                          promotion_choice=None, 
-                          was_castling=False, 
-                          was_en_passant=False, 
-                          is_draw=False,
-                          is_in_check=False,
-                          is_checkmate=False,
-                          was_promotion=False):
+    def generate_san_lite(self, **move_info):
+        # move_info should contain:
+        # "piece": piece,
+        # "from": from_position,
+        # "to": to_position,
+        # "captured_piece": captured_piece,
+        # "was_castling": was_castling,
+        # "was_promotion": was_promotion,
+        # "promotion_choice": promotion_choice,
+        # "was_en_passant": was_en_passant,
+        # "is_draw": is_draw,
+        # "is_in_check": is_in_check,
+        # "is_checkmate": is_checkmate
         """Generate a simplified SAN (Standard Algebraic Notation) for the move."""
         san = ""
-        if was_castling:
-            if to_position[0] == 'g':
+        if move_info["was_castling"]:
+            if move_info["to"][0] == 'g':
                 san = "O-O"  # Kingside castling
-            elif to_position[0] == 'c':
+            elif move_info["to"][0] == 'c':
                 san = "O-O-O"  # Queenside castling
         else:
-            if piece.type != "P":
-                san += piece.type  # Add piece type for non-pawn moves
-            if captured_piece:
-                if piece.type == "P":
-                    san += from_position[0]  # Add file of pawn for captures
+            if move_info["piece"].type != "P":
+                san += move_info["piece"].type  # Add piece type for non-pawn moves
+            if move_info["captured_piece"]:
+                if move_info["piece"].type == "P":
+                    san += move_info["from"][0]  # Add file of pawn for captures
                 san += "x"  # Indicate capture
-            san += to_position  # Add destination square
-            if was_promotion:
-                san += f"={promotion_choice}"  # Indicate promotion
-            if was_en_passant:
+            san += move_info["to"]  # Add destination square
+            if move_info["was_promotion"]:
+                san += f"={move_info['promotion_choice']}"  # Indicate promotion
+            if move_info["was_en_passant"]:
                 san += " e.p."  # Indicate en passant capture
-            if is_draw:
+            if move_info["is_draw"]:
                 san += " (draw)"  # Indicate draw
-            if is_in_check:
+            if move_info["is_in_check"]:
                 san += "+"  # Indicate check
-            if is_checkmate:
+            if move_info["is_checkmate"]:
                 san += "#"  # Indicate checkmate
         return san
 

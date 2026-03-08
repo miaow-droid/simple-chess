@@ -766,7 +766,8 @@ class TestMoveHistory(unittest.TestCase):
 
         self.assertEqual(entry["from"], "e2")
         self.assertEqual(entry["to"], "e4")
-        self.assertEqual(entry["piece"].type, "P")
+        self.assertEqual(entry["piece_type"], "P")
+        self.assertEqual(entry["piece_color"], COLOR["white"])
         self.assertFalse(entry["was_castling"])
         self.assertFalse(entry["was_en_passant"])
         self.assertTrue(entry["was_two_square_pawn_move"])
