@@ -7,25 +7,24 @@ from game.piece import Queen, Rook, Bishop, Knight, Pawn
 
 class Game:
     def __init__(self, enable_fifty_move_rule=True):
+        self.enable_fifty_move_rule = enable_fifty_move_rule  # Flag to enable or disable the fifty-move rule
+        self._init_game_state()  # Initialize the game state
+
+
+    def _init_game_state(self):
+        """Initialize or reset the game state."""
         self.board = ChessBoard()
         self.rules = StandardChessRules(self.board)
-        self.current_turn = COLOR["white"]  # White starts first
+        self.current_turn = COLOR["white"]
         self.game_over = False
-        self.is_draw = False  # Flag to indicate if the game ended in a draw
-        self.draw_reason = None  # Reason for the draw (e.g., stalemate, insufficient material, etc.)
-        self.halfmove_clock = 0  # Count of half-moves since the last pawn move or capture (for fifty-move rule)
-        self.enable_fifty_move_rule = enable_fifty_move_rule  # Flag to enable or disable the fifty-move rule
-        self.position_history = []  # List to keep track of board positions for threefold repetition detection
-        self.is_in_check = False  # Flag to indicate if the current player is in check
-        self.last_move = None   # Initialize last_move to None
-                                # "piece_type": piece.type,
-                                # "piece_color": piece.color,
-                                # "from": from_position,
-                                # "to": to_position,
-                                # "captured_piece": captured_piece if captured_piece else None,
-                                # "was_two_square_pawn_move": was_two_square_pawn_move
-        self.move_history = []  # List to keep track of all moves made in the game for notation/ save games/ replay purposes
-        self.piece_first_move_status = False # Flag to track status of first move for undo functionality
+        self.is_draw = False
+        self.draw_reason = None
+        self.halfmove_clock = 0
+        self.position_history = []
+        self.is_in_check = False
+        self.last_move = None
+        self.move_history = []
+        self.piece_first_move_status = False
 
     def make_move(self, from_position, to_position, promotion_choice="Q"):
         """Make a move on the board if it's valid."""
@@ -146,6 +145,7 @@ class Game:
             "piece_type": piece.type,
             "piece_color": piece.color,
             "captured_piece_type": captured_piece.type if captured_piece else None,
+            "captured_piece_has_moved": captured_piece.has_moved if captured_piece else None,
             "captured_piece_color": captured_piece.color if captured_piece else None,
             "promotion_choice": promotion_choice,
             "was_castling": castled,
@@ -200,17 +200,7 @@ class Game:
         return len(valid_moves) == 0
     
     def reset_game(self):
-        """Reset the game to the initial state."""
-        self.board = ChessBoard()
-        self.rules = StandardChessRules(self.board)
-        self.current_turn = COLOR["white"]  
-        self.game_over = False
-        self.is_draw = False  
-        self.draw_reason = None  
-        self.halfmove_clock = 0  
-        self.position_history = []
-        self.last_move = None  
-        self.move_history = []
+        self._init_game_state()  # Reinitialize the game state to start a new game
 
     def find_king(self, color):
         """Find the king piece of the specified color."""
@@ -323,10 +313,11 @@ class Game:
         """Check if a specific square is under attack by the specified color."""
         for from_position, piece in self.board.board.items():
             if piece and piece.color == attacking_color:
-                if self.rules.is_valid_move(from_position, position, self.last_move):
-                    return True
-                elif piece.type == "P":  # Special case for pawn attacks
+                if piece.type == "P":  # Special case for pawn attacks
                     if self.rules.is_valid_pawn_attack(piece, from_position, position):
+                        return True
+                else:
+                    if self.rules.is_valid_move(from_position, position, self.last_move):
                         return True
         return False
     
@@ -497,6 +488,7 @@ class Game:
         halfmove_clock = last_move["pre_move_halfmove_clock"] if "pre_move_halfmove_clock" in last_move else 0
         was_promotion = last_move["was_promotion"] if "was_promotion" in last_move else False
         history_last_move = last_move["last_move"].copy() if last_move["last_move"] else None  # Restore the last move before the undone move
+        captured_piece_has_moved = last_move["captured_piece_has_moved"] if "captured_piece_has_moved" in last_move else None
 
         # Restore game state variables
         self.current_turn = piece_color  # It's now the turn of the player who made the last move
@@ -549,6 +541,9 @@ class Game:
                     captured_piece = Queen(captured_piece_color, captured_position)
                 case _:
                     raise ValueError(f"Invalid captured piece type: {captured_piece_type}.")
+
+            if captured_piece:
+                captured_piece.has_moved = captured_piece_has_moved  # Restore has_moved status for the captured piece
 
             self.board.set_piece_at(captured_position, captured_piece)
 

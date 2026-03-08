@@ -922,5 +922,100 @@ class TestNotationPersistence(unittest.TestCase):
         self.assertEqual(replay_c6.type, expected_c6.type)
 
 
+class TestUndoRegression(unittest.TestCase):
+    def setUp(self):
+        self.game = Game()
+
+    def _clear_board(self):
+        for square in self.game.board.board.keys():
+            self.game.board.remove_piece_at(square)
+
+    def test_undo_restore_captured_rook_has_moved_state(self):
+        """Undo should restore captured piece metadata, including has_moved."""
+        self._clear_board()
+
+        white_king = King(COLOR["white"], "e1")
+        black_king = King(COLOR["black"], "e8")
+        white_rook = Rook(COLOR["white"], "h1")
+        black_queen = Queen(COLOR["black"], "h2")
+        white_pawn = Pawn(COLOR["white"], "a2")
+        black_pawn = Pawn(COLOR["black"], "a7")
+
+        # Simulate a rook that has already moved earlier in the game.
+        white_rook.has_moved = True
+
+        self.game.board.set_piece_at("e1", white_king)
+        self.game.board.set_piece_at("e8", black_king)
+        self.game.board.set_piece_at("h1", white_rook)
+        self.game.board.set_piece_at("h2", black_queen)
+        self.game.board.set_piece_at("a2", white_pawn)
+        self.game.board.set_piece_at("a7", black_pawn)
+        self.game.current_turn = COLOR["white"]
+
+        self.game.make_move("a2", "a3")
+        self.game.make_move("h2", "h1")
+        self.game.undo_move()
+
+        restored_rook = self.game.board.get_piece_at("h1")
+        self.assertIsNotNone(restored_rook)
+        self.assertEqual(restored_rook.type, "R")
+        self.assertTrue(restored_rook.has_moved)
+
+    def test_undo_castling_resets_rook_has_moved_to_false(self):
+        """After undoing castling, rook.has_moved should be False."""
+        self._clear_board()
+
+        white_king = King(COLOR["white"], "e1")
+        white_rook = Rook(COLOR["white"], "h1")
+        black_king = King(COLOR["black"], "a8")
+
+        self.game.board.set_piece_at("e1", white_king)
+        self.game.board.set_piece_at("h1", white_rook)
+        self.game.board.set_piece_at("a8", black_king)
+        self.game.current_turn = COLOR["white"]
+
+        self.game.make_move("e1", "g1")
+
+        castled_rook = self.game.board.get_piece_at("f1")
+        self.assertIsNotNone(castled_rook)
+        self.assertTrue(castled_rook.has_moved)
+
+        self.game.undo_move()
+
+        restored_rook = self.game.board.get_piece_at("h1")
+        self.assertIsNotNone(restored_rook)
+        self.assertEqual(restored_rook.type, "R")
+        self.assertFalse(restored_rook.has_moved)
+
+
+class TestResetGame(unittest.TestCase):
+    def setUp(self):
+        self.game = Game()
+
+    def test_reset_game_clears_transient_flags(self):
+        self.game.is_in_check = True
+        self.game.piece_first_move_status = True
+
+        self.game.reset_game()
+
+        self.assertFalse(self.game.is_in_check)
+        self.assertFalse(self.game.piece_first_move_status)
+
+    def test_reset_game_restores_core_baseline_state(self):
+        self.game.make_move("e2", "e4")
+        self.game.make_move("e7", "e5")
+
+        self.game.reset_game()
+
+        self.assertEqual(self.game.current_turn, COLOR["white"])
+        self.assertFalse(self.game.game_over)
+        self.assertFalse(self.game.is_draw)
+        self.assertIsNone(self.game.draw_reason)
+        self.assertEqual(self.game.halfmove_clock, 0)
+        self.assertEqual(self.game.position_history, [])
+        self.assertIsNone(self.game.last_move)
+        self.assertEqual(self.game.move_history, [])
+
+
 if __name__ == "__main__":
     unittest.main()

@@ -41,6 +41,12 @@ python src/main.py
 
 This is a learning project. Feel free to experiment and expand the codebase.
 
+## Rules Notes
+
+- Threefold repetition uses a simplified rule in this project.
+- A repeated position is detected from board piece placement snapshots.
+- Castling rights and en passant rights are intentionally not included in repetition matching.
+
 ## License
 
 This project is for educational purposes.

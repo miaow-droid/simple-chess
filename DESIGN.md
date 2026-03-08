@@ -131,6 +131,8 @@ Implemented FIDE special moves:
 - **Checkmate**: Opponent's King is in check and has no legal moves → Current player wins
 - **Stalemate**: Opponent's King is NOT in check but has no legal moves → Draw
 - **Threefold repetition**: Same position repeated three times → Draw
+- **Threefold repetition (simplified)**: Same board piece placement repeated three times → Draw
+- **Note**: Castling rights and en passant rights are intentionally not part of repetition matching in this project.
 - **Fifty-move rule**: 100 half-moves without pawn move/capture → Draw
 - **Insufficient material**: Neither player has enough pieces to checkmate → Draw
 - **Resignation** (planned)
