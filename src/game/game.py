@@ -3,7 +3,7 @@ from game import piece
 from .board import ChessBoard
 from .standard_chess_rules import StandardChessRules
 from utils.constants import COLOR
-from game.piece import Queen, Rook, Bishop, Knight, Pawn, King
+from game.piece import Queen, Rook, Bishop, Knight, Pawn
 
 class Game:
     def __init__(self, enable_fifty_move_rule=True):
@@ -84,6 +84,7 @@ class Game:
             promotion_rank = 8 if piece.color == COLOR["white"] else 1
             if int(to_position[1]) == promotion_rank:
                 self.promotion(to_position, promotion_choice)
+                piece = self.board.get_piece_at(to_position)  # Update the piece reference after promotion
                 was_promotion = True
 
         # Check for check, checkmate, and stalemate
@@ -156,6 +157,7 @@ class Game:
             "position_history": self.position_history.copy(),
             "current_turn": self.current_turn,
             "piece_first_move_status": self.piece_first_move_status,
+            "was_promotion": was_promotion
         })
                 
         if not self.game_over:
@@ -487,6 +489,20 @@ class Game:
         was_en_passant = last_move["was_en_passant"]
         piece_first_move_status = last_move["piece_first_move_status"]
         was_promotion = last_move["was_promotion"]
+        was_in_check = last_move["is_in_check"]
+        halfmove_clock = last_move["halfmove_clock"]
+
+        # Restore game state variables
+        self.current_turn = piece_color  # It's now the turn of the player who made the last move
+        self.game_over = False  # Reset game over status
+        self.last_move = None if not self.move_history else self.move_history[-1]  # Restore last move if available
+        self.is_draw = False  # Reset draw status
+        self.is_in_check = was_in_check  # Restore check status
+        self.halfmove_clock = halfmove_clock  # Restore halfmove clock
+
+        # Restore to_postition when no capture occurred
+        if captured_piece_type is None:
+            self.board.set_piece_at(to_position, None)  # Remove the piece from the destination square
 
         # Restore the moved piece to its original position
         moved_piece = self.board.get_piece_at(to_position)
@@ -505,7 +521,20 @@ class Game:
             else:
                 captured_position = to_position
             
-            captured_piece = piece.create_piece(captured_piece_type, captured_piece_color, captured_position)
+            match captured_piece_type:
+                case "P":
+                    captured_piece = Pawn(captured_piece_color, captured_position)
+                case "R":
+                    captured_piece = Rook(captured_piece_color, captured_position)
+                case "N":
+                    captured_piece = Knight(captured_piece_color, captured_position)   
+                case "B":
+                    captured_piece = Bishop(captured_piece_color, captured_position)
+                case "Q":
+                    captured_piece = Queen(captured_piece_color, captured_position)
+                case _:
+                    raise ValueError(f"Invalid captured piece type: {captured_piece_type}.")
+
             self.board.set_piece_at(captured_position, captured_piece)
 
         # Handle castling undo
@@ -531,6 +560,6 @@ class Game:
         # Restore promotion if it occurred
         if was_promotion:
             # Replace the promoted piece with a pawn
-            pawn_piece = Pawn("P", piece_color, from_position)
+            pawn_piece = Pawn(piece_color, from_position)
             self.board.set_piece_at(from_position, pawn_piece)
-
+            self.board.set_piece_at(to_position, None)  # Remove the promoted piece from the destination square
