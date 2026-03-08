@@ -440,7 +440,7 @@ class Game:
             elif move_info["to"][0] == 'c':
                 san = "O-O-O"  # Queenside castling
         else:
-            if move_info["piece"].type != "P":
+            if move_info["piece"].type != "P" and not move_info["was_promotion"]:
                 san += move_info["piece"].type  # Add piece type for non-pawn moves
             if move_info["captured_piece"]:
                 if move_info["piece"].type == "P":
@@ -499,16 +499,18 @@ class Game:
         self.is_draw = False  # Reset draw status
         self.is_in_check = was_in_check  # Restore check status
         self.halfmove_clock = halfmove_clock  # Restore halfmove clock
-
-        # Restore to_postition when no capture occurred
-        if captured_piece_type is None:
-            self.board.set_piece_at(to_position, None)  # Remove the piece from the destination square
+        self.piece_first_move_status = piece_first_move_status  # Restore first move status for the piece
+        self.draw_reason = None  # Reset draw reason
 
         # Restore the moved piece to its original position
         moved_piece = self.board.get_piece_at(to_position)
         if moved_piece is None or moved_piece.type != piece_type or moved_piece.color != piece_color:
             raise ValueError("Inconsistent game state: Moved piece not found at expected position.")
         
+        # Restore to_postition when no capture occurred
+        if captured_piece_type is None:
+            self.board.set_piece_at(to_position, None)  # Remove the piece from the destination square
+
         self.board.set_piece_at(from_position, moved_piece)
         moved_piece.position = from_position
         moved_piece.has_moved = piece_first_move_status  # Reset has_moved status if it's the first move of the piece
