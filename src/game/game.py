@@ -3,7 +3,7 @@ from game import piece
 from .board import ChessBoard
 from .standard_chess_rules import StandardChessRules
 from utils.constants import COLOR
-from game.piece import Queen, Rook, Bishop, Knight
+from game.piece import Queen, Rook, Bishop, Knight, Pawn, King
 
 class Game:
     def __init__(self, enable_fifty_move_rule=True):
@@ -25,6 +25,7 @@ class Game:
                                 # "captured_piece": captured_piece if captured_piece else None,
                                 # "was_two_square_pawn_move": was_two_square_pawn_move
         self.move_history = []  # List to keep track of all moves made in the game for notation/ save games/ replay purposes
+        self.piece_first_move_status = False # Flag to track status of first move for undo functionality
 
     def make_move(self, from_position, to_position, promotion_choice="Q"):
         """Make a move on the board if it's valid."""
@@ -41,6 +42,8 @@ class Game:
         
         if piece.color != self.current_turn:
             raise ValueError(f"It's {self.current_turn}'s turn. Cannot move {piece.color}'s piece.")
+        
+        self.piece_first_move_status = piece.has_moved
         
         if piece.type == "K" and abs(ord(from_position[0]) - ord(to_position[0])) == 2 and from_position[1] == to_position[1]:
             if self.can_castle(piece.color, "kingside") and to_position == f"g{from_position[1]}":
@@ -152,6 +155,7 @@ class Game:
             "halfmove_clock": self.halfmove_clock,
             "position_history": self.position_history.copy(),
             "current_turn": self.current_turn,
+            "piece_first_move_status": self.piece_first_move_status,
         })
                 
         if not self.game_over:
@@ -466,3 +470,67 @@ class Game:
             # For now, we'll raise a NotImplementedError to indicate that this feature is not yet implemented.
             raise NotImplementedError("Loading from SAN notation is not implemented yet.")
         
+    def undo_move(self):
+        """Undo the last move made in the game."""
+        if not self.move_history:
+            raise ValueError("No moves to undo.")
+        
+        last_move = self.move_history.pop()  # Remove the last move from history
+        self.position_history.pop()  # Remove the last position snapshot from position history
+        from_position = last_move["from"]
+        to_position = last_move["to"]
+        piece_type = last_move["piece_type"]
+        piece_color = last_move["piece_color"]
+        captured_piece_type = last_move["captured_piece_type"]
+        captured_piece_color = last_move["captured_piece_color"]
+        was_castling = last_move["was_castling"]
+        was_en_passant = last_move["was_en_passant"]
+        piece_first_move_status = last_move["piece_first_move_status"]
+        was_promotion = last_move["was_promotion"]
+
+        # Restore the moved piece to its original position
+        moved_piece = self.board.get_piece_at(to_position)
+        if moved_piece is None or moved_piece.type != piece_type or moved_piece.color != piece_color:
+            raise ValueError("Inconsistent game state: Moved piece not found at expected position.")
+        
+        self.board.set_piece_at(from_position, moved_piece)
+        moved_piece.position = from_position
+        moved_piece.has_moved = piece_first_move_status  # Reset has_moved status if it's the first move of the piece
+
+        # Restore any captured piece to its original position
+        if captured_piece_type and captured_piece_color:
+            if was_en_passant:
+                # For en passant, the captured pawn is behind the destination square
+                captured_position = f"{to_position[0]}{from_position[1]}"
+            else:
+                captured_position = to_position
+            
+            captured_piece = piece.create_piece(captured_piece_type, captured_piece_color, captured_position)
+            self.board.set_piece_at(captured_position, captured_piece)
+
+        # Handle castling undo
+        if was_castling:
+            rank = '1' if piece_color == COLOR["white"] else '8'
+            if to_position[0] == 'g':  # Kingside castling
+                rook_from = f"h{rank}"
+                rook_to = f"f{rank}"
+            elif to_position[0] == 'c':  # Queenside castling
+                rook_from = f"a{rank}"
+                rook_to = f"d{rank}"
+            else:
+                raise ValueError("Invalid castling move.")
+
+            rook = self.board.get_piece_at(rook_to)
+            if rook is None or rook.type != "R" or rook.color != piece_color:
+                raise ValueError("Inconsistent game state: Rook not found at expected position for castling undo.")
+            
+            self.board.set_piece_at(rook_from, rook)
+            rook.position = rook_from
+            rook.has_moved = False  # Reset has_moved status for the rook
+        
+        # Restore promotion if it occurred
+        if was_promotion:
+            # Replace the promoted piece with a pawn
+            pawn_piece = Pawn("P", piece_color, from_position)
+            self.board.set_piece_at(from_position, pawn_piece)
+
