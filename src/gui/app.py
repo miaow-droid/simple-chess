@@ -14,7 +14,7 @@ main = tk.Tk()
 main.title("Simple Chess")
 main.label = tk.Label(main, text="New Game", font=("Helvetica", 16))
 main.label.pack(pady=10)
-main.config(bg="#070015")
+main.config(bg=GLOBAL_BUTTON_STYLE["primary"])
 main.geometry("800x700")
 main.update_idletasks()
 
@@ -35,10 +35,10 @@ menu.add_cascade(label="File", menu=menu_0)
 menu_1 = tk.Menu(menu, tearoff=0)
 menu.add_cascade(label="Edit", menu=menu_1)
 
-style.configure("WhiteSquare.TButton", background="#E7E7E7", relief="flat") # Set the background color for white squares to a light gray and remove the border relief
-style.configure("BlackSquare.TButton", background="#555555", relief="flat") # Set the background color for black squares to a dark gray and remove the border relief
-style.map("WhiteSquare.TButton", background=[("active", "#a8a8a8")], foreground=[("active", "#000")]) # Set the background color for white squares when active to a medium gray and the text color to black
-style.map("BlackSquare.TButton", background=[("active", "#a8a8a8")], foreground=[("active", "#000")]) # Set the background color for black squares when active to a medium gray and the text color to black
+style.configure("WhiteSquare.TButton", background=GLOBAL_BUTTON_STYLE["secondary"], relief="flat") # Set the background color for white squares to a light gray and remove the border relief
+style.configure("BlackSquare.TButton", background=GLOBAL_BUTTON_STYLE["tertiary"], relief="flat") # Set the background color for black squares to a dark gray and remove the border relief
+style.map("WhiteSquare.TButton", background=[("active", GLOBAL_BUTTON_STYLE["hovered"])], foreground=[("active", "#000")]) # Set the background color for white squares when active to a medium gray and the text color to black
+style.map("BlackSquare.TButton", background=[("active", GLOBAL_BUTTON_STYLE["hovered"])], foreground=[("active", "#000")]) # Set the background color for black squares when active to a medium gray and the text color to black
 
 #--------------------------------Helpers-------------------------------------------------
 
@@ -54,14 +54,45 @@ def get_piece_image(code: str):
         piece_images[code] = ImageTk.PhotoImage(image)
     return piece_images[code]
 
+def blend(hex1, hex2, t):
+    # t: 0.0 -> hex1, 1.0 -> hex2
+    h1 = hex1.lstrip("#")
+    h2 = hex2.lstrip("#")
+    r1, g1, b1 = int(h1[0:2], 16), int(h1[2:4], 16), int(h1[4:6], 16)
+    r2, g2, b2 = int(h2[0:2], 16), int(h2[2:4], 16), int(h2[4:6], 16)
+    r = round(r1 + (r2 - r1) * t)
+    g = round(g1 + (g2 - g1) * t)
+    b = round(b1 + (b2 - b1) * t)
+    return f"#{r:02x}{g:02x}{b:02x}"
+
+style.configure("SelectedLight.TButton", background=blend(GLOBAL_BUTTON_STYLE["selected"], GLOBAL_BUTTON_STYLE["secondary"], 0.5), relief="flat") # Set the background color for selected squares to a medium gray and remove the border relief
+style.configure("SelectedDark.TButton", background=blend(GLOBAL_BUTTON_STYLE["selected"], GLOBAL_BUTTON_STYLE["tertiary"], 0.5), relief="flat") # Set the background color for selected squares to a medium gray and remove the border relief
+style.configure("LegalMoveLight.TButton", background=blend(GLOBAL_BUTTON_STYLE["legal_move"], GLOBAL_BUTTON_STYLE["secondary"], 0.7), relief="flat") # Set the background color for legal move squares to light green and remove the border relief
+style.configure("LegalMoveDark.TButton", background=blend(GLOBAL_BUTTON_STYLE["legal_move"], GLOBAL_BUTTON_STYLE["tertiary"], 0.7), relief="flat") # Set the background color for legal move squares to light green and remove the border relief
+
 def refresh_board():
     state = game_controller.get_state()
+    selected_square = state["selected_square"]
+    legal_moves = state["legal_moves"]
     for square, button in square_buttons.items():
         code = state["board"].get(square)  # e.g. "wP", "bK", or None
         if code:
             button.config(image=get_piece_image(code), text="")
         else:
             button.config(image="", text="")
+        if square == selected_square:
+            if (int(square[1]) + ord(square[0]) - ord('a')) % 2 == 0:
+                button.config(style="SelectedLight.TButton")
+            else:
+                button.config(style="SelectedDark.TButton")
+        elif square in legal_moves:
+            if (int(square[1]) + ord(square[0]) - ord('a')) % 2 == 0:
+                button.config(style="LegalMoveLight.TButton")
+            else:
+                button.config(style="LegalMoveDark.TButton")
+        else:
+            sq_style = "WhiteSquare.TButton" if (int(square[1]) + ord(square[0]) - ord('a')) % 2 == 0 else "BlackSquare.TButton"
+            button.config(style=sq_style)
 
 def handle_click(square):
     game_controller.on_square_click(square)
@@ -71,7 +102,7 @@ def handle_click(square):
 
 #--------------------------------Build the chess board UI--------------------------------
 
-container = tk.Frame(main, bg="#070015")
+container = tk.Frame(main, bg=GLOBAL_BUTTON_STYLE["primary"])
 container.pack(fill="both", expand=True)
 
 square_buttons = {}  # Dictionary to hold references to the square buttons
@@ -83,7 +114,7 @@ tile = 64
 piece_size = 60
 board_size = tile * 8
 
-board_frame = tk.Frame(container, width=board_size, height=board_size, bg="#070015")
+board_frame = tk.Frame(container, width=board_size, height=board_size, bg=GLOBAL_BUTTON_STYLE["primary"])
 board_frame.place(relx=0.5, rely=0.5, anchor="center")
 board_frame.grid_propagate(False)  # keep exact width/height
 
@@ -108,11 +139,11 @@ for i in range(8):
 
 #-------------------------------Replayer Controls--------------------------------
 
-controls = tk.Frame(container, bg="#070015")
+controls = tk.Frame(container, bg=GLOBAL_BUTTON_STYLE["primary"])
 controls.pack(pady=7)
 replay_button_stype = ttk.Style()
-replay_button_stype.configure("Replay.TButton", **GLOBAL_BUTTON_STYLE["configure"])
-replay_button_stype.map("Replay.TButton", **GLOBAL_BUTTON_STYLE["map"])
+replay_button_stype.configure("Replay.TButton", background=GLOBAL_BUTTON_STYLE["secondary"], relief="flat", padding=5)
+replay_button_stype.map("Replay.TButton", background=[("active", GLOBAL_BUTTON_STYLE["hovered"])], foreground=[("active", "#000")])  # Set the background color for replay buttons when active to a medium gray and the text color to black
 
 def handle_undo():
     game_controller.undo()

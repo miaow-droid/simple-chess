@@ -36,12 +36,11 @@ PIECE_SYMBOLS = {
 }
 
 GLOBAL_BUTTON_STYLE = {
-    "configure": {
-        "background": "#06051D",
-        "foreground": "#E0E0E0",
-    },
-    "map": {
-        "background": [("active", "#12103B"), ("pressed", "#272641"), ("hover", "#201F3D")],
-        "foreground": [("disabled", "#8A8A8A")]
-    }
+    "primary": "#221D33",
+    "secondary": "#D0C7EB",
+    "tertiary": "#3B1F8D",
+    "danger": "#FF4500",
+    "hovered": "#75689B",
+    "selected": "#5D84CA",
+    "legal_move": "#90EE90",
 }
