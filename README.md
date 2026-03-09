@@ -8,8 +8,8 @@ A learning project for building a chess game in Python.
 - Draw rules are implemented (threefold repetition using simplified board snapshots, fifty-move rule, insufficient material).
 - SAN-lite notation is implemented for move history export/import (`export_notation`, `load_notation`).
 - Notation replay-to-final-state is covered by tests, including captures, castling, promotion, en passant suffix parsing, and checkmate suffix parsing.
-- Step-by-step replay controls (`replay_start`, `replay_next`, `replay_previous`, `replay_end`) are not implemented yet.
-- Test status: `88 passed, 5 failed` (the 5 failures are replay-control API tests added intentionally as next TDD target).
+- Step-by-step replay controls are implemented (`replay_start`, `replay_next`, `replay_previous`, `replay_end`).
+- Test status: `93 passed, 0 failed`.
 
 ## Project Structure
 

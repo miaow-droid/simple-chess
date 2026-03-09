@@ -30,7 +30,7 @@ A functional chess game with the following requirements:
 - [x] Undo move functionality
 - [x] Save game to notation (SAN-lite move list export)
 - [x] Load game from notation (SAN-lite replay to final state)
-- [ ] Step-by-step replay from notation
+- [x] Step-by-step replay from notation
 - [x] Architecture ready for AI integration
 
 ### 2.2 Current Implementation Status
@@ -43,10 +43,10 @@ A functional chess game with the following requirements:
 - [x] Draw rules: threefold repetition, fifty-move rule, insufficient material
 - [x] Move notation history (SAN-lite) implemented
 - [x] Notation export and load replay implemented
-- [ ] Replay controls API (start/previous/next/end) not implemented yet
+- [x] Replay controls API (start/previous/next/end) implemented
 - [x] Unit tests for game/rules/draw/notation import-export are in place
-- [ ] Replay-controls tests are currently red until API methods are implemented
-- [x] Current test run: 88 passed, 5 failed (expected replay-control gaps)
+- [x] Replay-controls tests are implemented and passing
+- [x] Current test run: 93 passed, 0 failed
 
 ### 2.3 Future Features
 - [ ] AI opponent (Stockfish integration)
@@ -203,10 +203,10 @@ The window will display the chess board and game interface with no command-line 
 - [x] Parse saved SAN-lite notation into move sequence
 - [x] Validate parsed moves against game rules
 - [x] Build replay final state from parsed moves
-- [ ] Implement replay controls: start, previous, next, end
+- [x] Implement replay controls: start, previous, next, end
 - [ ] Show current move number and notation during replay
 - [x] Add unit tests for import/replay-to-final-state flows
-- [ ] Add unit/integration tests for step-by-step replay controls (tests written, currently failing as intended)
+- [x] Add unit/integration tests for step-by-step replay controls
 
 ### 7.4 Phase 3: GUI & User Interaction
 
@@ -278,7 +278,7 @@ src/
 - Check/checkmate/stalemate detection
 - Draw conditions (threefold repetition, fifty-move, insufficient material)
 - Notation output and import replay-to-final-state
-- Replay-control tests (currently failing until replay API implementation)
+- Replay-control tests (passing)
 
 ### 9.2 Integration Tests
 - End-to-end move sequences (opening patterns, checkmates, draws)
@@ -287,6 +287,6 @@ src/
 ---
 
 ## 10. Notes & References
-- Current immediate priority: implement step-by-step replay controls in the game layer to satisfy existing failing tests.
+- Current immediate priority: GUI layer implementation and replay controls integration into the UI.
 - Keep engine logic deterministic and test-first as notation features are added.
 

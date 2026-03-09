@@ -6,9 +6,8 @@
 
 - Core chess engine rules are implemented (including castling, en passant, promotion, draw rules, and undo).
 - SAN-lite notation export/import is implemented and tested.
-- Replay controls API (`replay_start`, `replay_next`, `replay_previous`, `replay_end`) is the current in-progress feature.
-- Current test status: `88 passed, 5 failed`.
-- The 5 failing tests are intentional TDD tests for the replay-controls API.
+- Replay controls API (`replay_start`, `replay_next`, `replay_previous`, `replay_end`) is implemented.
+- Current test status: `93 passed, 0 failed`.
 
 ### Completed Steps:
 
