@@ -445,8 +445,8 @@ class Game:
         else:
             if move_info["piece"].type != "P" and not move_info["was_promotion"]:
                 san += move_info["piece"].type  # Add piece type for non-pawn moves
-            if self._if_san_disambiguation_needed(move_info["piece"].type, move_info["to"]):
-                san += move_info["from"]  # Add disambiguation if needed
+                if self._if_san_disambiguation_needed(move_info["piece"].type, move_info["to"]):
+                    san += move_info["from"]  # Add disambiguation if needed
             if move_info["captured_piece"]:
                 if move_info["piece"].type == "P":
                     san += move_info["from"][0]  # Add file of pawn for captures
@@ -490,9 +490,12 @@ class Game:
                     if len(clean_san) <= 4:
                         from_position = self._find_piece_for_move(piece_type, to_position)
                     else:
-                        from_position = clean_san[1:-2]  # Disambiguation part
+                        from_position = clean_san[1:3]  # Disambiguation part
                 else:
-                    from_position = f"{clean_san[0]}{int(to_position[1])-1 if self.current_turn == COLOR['white'] else int(to_position[1])+1}"  # For pawns, the file is given by the first character of SAN
+                    if "x" in clean_san:
+                        from_position = clean_san[0] + str(int(to_position[1]) - 1 if self.current_turn == COLOR["white"] else int(to_position[1]) + 1)  # File of the pawn + rank of destination
+                    else:
+                        from_position = to_position[0] + str(int(to_position[1]) - 1 if self.current_turn == COLOR["white"] else int(to_position[1]) + 1)  # File of the pawn + rank of destination
                 self.make_move(from_position, to_position, promotion_choice=promotion_type if promotion_type else "Q")
             
         
@@ -627,5 +630,5 @@ class Game:
         if not possible_moves:
             raise ValueError(f"No valid {piece_type} found that can move to {to_position}.")
         if len(possible_moves) == 1:
-            return True
-        return False
+            return False
+        return True
