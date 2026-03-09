@@ -695,3 +695,17 @@ class Game:
                 capture_file = clean_san[0] if "x" in clean_san else None
                 from_position = self._find_pawn_for_move(to_position, capture_file)
             self.make_move(from_position, to_position, promotion_choice=promotion_type if promotion_type else "Q")
+
+    def get_legal_moves(self, position):
+        """Get all legal moves for the piece at the specified position."""
+        piece = self.board.get_piece_at(position)
+        if not piece:
+            raise ValueError(f"No piece at position {position}.")
+        
+        legal_moves = []
+        for to_position in self.board.board.keys():
+            if self.rules.is_valid_move(position, to_position, self.last_move):
+                if not self.would_be_in_check_after_move(position, to_position):
+                    legal_moves.append(to_position)
+        
+        return legal_moves
