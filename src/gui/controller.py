@@ -52,11 +52,19 @@ class GameController:
     
     def undo(self):
         """Undo the last move."""
-        pass # This method will be implemented to handle undoing the last move, including updating the game state and board.
+        try:
+            self.game.undo_move()
+            self.selected_square = None  # Clear selection after undo
+            self.last_error = None  # Clear last error after undo
+        except ValueError as e:
+            print(f"Cannot undo: {e}")
+            self.last_error = str(e)
     
     def reset(self):
         """Reset the game to its initial state."""
-        pass # This method will be implemented to reset the game, including clearing the board, resetting the turn, and clearing move history.
+        self.game.reset_game()
+        self.selected_square = None
+        self.last_error = None  # Clear last error on reset
     
     def load_notation(self, notation):
         """Load a game from SAN-lite notation."""

@@ -34,3 +34,14 @@ PIECE_SYMBOLS = {
         "K": "♚"
     }
 }
+
+GLOBAL_BUTTON_STYLE = {
+    "configure": {
+        "background": "#06051D",
+        "foreground": "#E0E0E0",
+    },
+    "map": {
+        "background": [("active", "#12103B"), ("pressed", "#272641"), ("hover", "#201F3D")],
+        "foreground": [("disabled", "#8A8A8A")]
+    }
+}

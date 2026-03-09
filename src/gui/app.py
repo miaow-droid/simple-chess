@@ -4,6 +4,7 @@ from tkinter import ttk
 from gui.controller import GameController
 from game.game import Game
 from PIL import Image, ImageTk
+from utils.constants import GLOBAL_BUTTON_STYLE
 
 
 #--------------------------------Build the main application window--------------------------------
@@ -104,6 +105,30 @@ for i in range(8):
         b.grid(row=i, column=j, sticky="nsew")
         b.config(compound="center", padding=0, text="")  # Center the image on the button
         square_buttons[file+rank] = b  # Store the button reference in the dictionary
+
+#-------------------------------Replayer Controls--------------------------------
+
+controls = tk.Frame(container, bg="#070015")
+controls.pack(pady=7)
+replay_button_stype = ttk.Style()
+replay_button_stype.configure("Replay.TButton", **GLOBAL_BUTTON_STYLE["configure"])
+replay_button_stype.map("Replay.TButton", **GLOBAL_BUTTON_STYLE["map"])
+
+def handle_undo():
+    game_controller.undo()
+    refresh_board()
+    game_state = game_controller.get_state()
+    main.label.config(text=f"Turn: {game_state['current_turn']} | Selected: {game_state['selected_square']}")
+
+def handle_reset():
+    game_controller.reset()
+    refresh_board()
+    main.label.config(text="New Game")
+
+undo_button = ttk.Button(controls, text="Undo", command=handle_undo, style="Replay.TButton")
+undo_button.pack(side="left", padx=5)
+reset_button = ttk.Button(controls, text="Reset", command=handle_reset, style="Replay.TButton")
+reset_button.pack(side="left", padx=5)
 
 refresh_board()  # Initial board setup
 
