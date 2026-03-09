@@ -1177,18 +1177,18 @@ class TestNotationReplayControls(unittest.TestCase):
 
     def test_replay_start_resets_to_initial_position(self):
         """replay_start should jump to move 0 initial board state."""
-        self.replay_game.replay_start()
+        self.replay_game.replay_start(self.notation)
         self.assertEqual(self.replay_game.board.get_board_snapshot(), self.initial_snapshot)
 
     def test_replay_end_restores_final_position(self):
         """replay_end should jump to final board state from notation replay."""
-        self.replay_game.replay_start()
+        self.replay_game.replay_start(self.notation)
         self.replay_game.replay_end()
         self.assertEqual(self.replay_game.board.get_board_snapshot(), self.final_snapshot)
 
     def test_replay_next_advances_one_ply(self):
         """replay_next should advance one move from the start position."""
-        self.replay_game.replay_start()
+        self.replay_game.replay_start(self.notation)
         self.replay_game.replay_next()
         self.assertEqual(self.replay_game.board.get_board_snapshot(), self.first_ply_snapshot)
 
@@ -1205,7 +1205,7 @@ class TestNotationReplayControls(unittest.TestCase):
 
     def test_replay_navigation_is_clamped_at_bounds(self):
         """Repeated previous/next at bounds should be safe and stable."""
-        self.replay_game.replay_start()
+        self.replay_game.replay_start(self.notation)
         self.replay_game.replay_previous()
         self.assertEqual(self.replay_game.board.get_board_snapshot(), self.initial_snapshot)
 

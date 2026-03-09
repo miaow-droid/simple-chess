@@ -25,6 +25,9 @@ class Game:
         self.last_move = None
         self.move_history = []
         self.piece_first_move_status = False
+        self.replay_notation = []  # Store the notation of moves for replay purposes
+        self.replay_index = 0  # Index to track the current move in replay mode
+        self.replay_active = False  # Flag to indicate if replay mode is active
 
     def make_move(self, from_position, to_position, promotion_choice="Q"):
         """Make a move on the board if it's valid."""
@@ -470,29 +473,17 @@ class Game:
         """Load a game from a simplified SAN notation list."""
         if not isinstance(notation_list, list) or not all(isinstance(san, str) for san in notation_list):
             raise ValueError("Notation list must be a list of SAN strings.")
+        
+        if not notation_list:
+            raise ValueError("Notation list is empty. Cannot load an empty game.")
+        
+        self.replay_start(notation_list)  # Start replay mode with the provided notation list
 
-        self.reset_game()  # Reset the game before loading
         for san in notation_list:
-            clean_san, e_p_flag, promotion_type = self._strip_san_suffixes(san)
-            if clean_san in ["O-O", "O-O-O"]:
-                # Handle castling
-                rank = '1' if self.current_turn == COLOR["white"] else '8'
-                from_position = f"e{rank}"
-                to_position = f"g{rank}" if clean_san == "O-O" else f"c{rank}"
-                self.make_move(from_position, to_position)
-            else:
-                # Handle normal moves
-                piece_type = clean_san[0] if clean_san[0] in ["K", "Q", "R", "B", "N"] else "P"
-                to_position = clean_san[-2:]  # Last two characters are the destination square
-                if piece_type != "P":
-                    if len(clean_san) <= 4:
-                        from_position = self._find_piece_for_move(piece_type, to_position)
-                    else:
-                        from_position = clean_san[1:3]  # Disambiguation part
-                else:
-                    capture_file = clean_san[0] if "x" in clean_san else None
-                    from_position = self._find_pawn_for_move(to_position, capture_file)
-                self.make_move(from_position, to_position, promotion_choice=promotion_type if promotion_type else "Q")
+            self.replayer(san)  # Replay each move in the notation list
+        
+        self.replay_index = len(self.replay_notation)  # Set the replay index to the end after loading all moves
+        self.replay_active = True  # Set replay mode to active after loading moves
             
         
     def undo_move(self):
@@ -639,3 +630,70 @@ class Game:
         if len(possible_moves) <= 1 or not possible_moves:
             return False
         return True
+    
+    def replay_start(self, notation_list):
+        """Start or reset the replay of the game moves."""
+        self.reset_game()  # Reset the game to the initial state
+        self.replay_notation = notation_list.copy()  # Store the notation for replay purposes
+        self.replay_index = 0
+        self.replay_active = True
+
+    def replay_end(self):
+        """Start and reset the replay of the game at the last move."""
+        if not self.replay_notation:
+            return
+        self.replay_start(self.replay_notation)  # Reset the game to the initial state of the replay
+
+        for san in self.replay_notation: # Replay all moves to reach the last move
+            self.replayer(san)
+        
+        self.replay_index = len(self.replay_notation)  # Set the replay index to the end after replaying all moves
+        self.replay_active = True  # Set replay mode to active after replaying all moves
+
+    def replay_next(self): # Replay the next move in the notation list.
+        """Replay the next move in the notation list."""
+        if not self.replay_active:
+            raise ValueError("Replay mode is not active. Cannot replay next move.")
+        if self.replay_index >= len(self.replay_notation):
+            return  # Already at the end of the notation list, cannot go forward
+        if not self.replay_active:
+            self.replay_start(self.replay_notation)  # Reset the game to the initial state of the replay
+        self.replayer(self.replay_notation[self.replay_index])  # Replay the move at the current index
+        self.replay_index += 1  # Move to the next move in the replay notation
+
+    def replay_previous(self): # Replay the previous move in the notation list.
+        """Replay the previous move in the notation list."""
+        if not self.replay_active:
+            raise ValueError("Replay mode is not active. Cannot replay previous move.")
+        if not self.replay_notation:
+            return  # No replay notation loaded, cannot go back
+        if self.replay_index <= 0:
+            return  # Already at the beginning of the notation list, cannot go back further
+        target_index = self.replay_index - 1  # Move to the previous move in the replay notation
+        self.replay_start(self.replay_notation)  # Reset the game to the initial state of the replay
+        for i in range(target_index):  # Replay moves up to the previous move
+            self.replayer(self.replay_notation[i])
+        self.replay_index = target_index  # Update the replay index to the previous move
+        self.replay_active = True # Set replay mode to active after replaying the previous move
+
+    def replayer(self, san): # Replay a single move from the notation list in SAN format.
+        clean_san, e_p_flag, promotion_type = self._strip_san_suffixes(san)
+        if clean_san in ["O-O", "O-O-O"]:
+            # Handle castling
+            rank = '1' if self.current_turn == COLOR["white"] else '8'
+            from_position = f"e{rank}"
+            to_position = f"g{rank}" if clean_san == "O-O" else f"c{rank}"
+            self.make_move(from_position, to_position)
+        else:
+            # Handle normal moves
+            piece_type = clean_san[0] if clean_san[0] in ["K", "Q", "R", "B", "N"] else "P"
+            to_position = clean_san[-2:]  # Last two characters are the destination square
+            if piece_type != "P":
+                if len(clean_san) <= 4:
+                    from_position = self._find_piece_for_move(piece_type, to_position)
+                else:
+                    from_position = clean_san[1:3]  # Disambiguation part
+            else:
+                capture_file = clean_san[0] if "x" in clean_san else None
+                from_position = self._find_pawn_for_move(to_position, capture_file)
+            self.make_move(from_position, to_position, promotion_choice=promotion_type if promotion_type else "Q")
