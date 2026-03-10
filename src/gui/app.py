@@ -141,6 +141,15 @@ def refresh_board():
             else:
                 line = f"{move_number}. {white_move}"
             history_listbox.insert("end", line)
+    
+    # Replay highlight (after listbox is populated)
+    history_listbox.selection_clear(0, "end")
+    replay_state = state["replay"]
+    if replay_state["active"] and replay_state["index"] > 0 and move_list:
+        row_index = (replay_state["index"] - 1) // 2
+        if 0 <= row_index < history_listbox.size():
+            history_listbox.selection_set(row_index)
+            history_listbox.see(row_index)
 
 def handle_click(square):
     game_controller.on_square_click(square)

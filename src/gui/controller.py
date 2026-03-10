@@ -112,6 +112,7 @@ class GameController:
         try:
             if not self.game.replay_notation:
                 notation = self.game.export_notation()
+                self.history_list = notation.copy()  # Store the full move list for GUI display
                 if not notation:
                     raise ValueError("No moves available to replay.")
                 self.game.replay_start(notation)
@@ -128,6 +129,7 @@ class GameController:
         try:
             if not self.game.replay_notation:
                 notation = self.game.export_notation()
+                self.history_list = notation.copy()  # Store the full move list for GUI display
                 if not notation:
                     raise ValueError("No moves available to replay.")
                 self.game.replay_start(notation)
@@ -144,6 +146,7 @@ class GameController:
         try:
             if not self.game.replay_notation:
                 notation = self.game.export_notation()
+                self.history_list = notation.copy()  # Store the full move list for GUI display
                 if not notation:
                     raise ValueError("No moves available to replay.")
                 self.game.replay_start(notation)
