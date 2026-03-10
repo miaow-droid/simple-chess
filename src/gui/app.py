@@ -103,6 +103,48 @@ def run_app():
         relief="flat"
         ) # Set the background color for legal move squares to light green and remove the border relief
 
+    def ask_promotion_choice(color):
+        """Show a modal dialog asking the player which piece to promote to."""
+        result = {"choice": None}
+
+        dialog = tk.Toplevel(main)
+        dialog.title("Promote Pawn")
+        dialog.config(bg=GLOBAL_BUTTON_STYLE["primary"])
+        dialog.resizable(False, False)
+        dialog.grab_set()
+        dialog.protocol("WM_DELETE_WINDOW", lambda: [result.update({"choice": None}), dialog.destroy()])
+
+        tk.Label(
+            dialog, text="Choose promotion piece:",
+            bg=GLOBAL_BUTTON_STYLE["primary"], fg="#FFF",
+            font=("Helvetica", 12)
+        ).pack(pady=(12, 6))
+
+        btn_frame = tk.Frame(dialog, bg=GLOBAL_BUTTON_STYLE["primary"])
+        btn_frame.pack(pady=(0, 12), padx=20)
+
+        color_prefix = "w" if color == "W" else "b"
+        choices = [("Queen", "Q"), ("Rook", "R"), ("Bishop", "B"), ("Knight", "N")]
+
+        for label, piece_type in choices:
+            code = color_prefix + piece_type
+            try:
+                img = get_piece_image(code)
+                btn = ttk.Button(
+                    btn_frame, image=img, style="Replay.TButton",
+                    command=lambda pt=piece_type: [result.update({"choice": pt}), dialog.destroy()]
+                )
+                btn.image = img
+            except Exception:
+                btn = ttk.Button(
+                    btn_frame, text=label, style="Replay.TButton",
+                    command=lambda pt=piece_type: [result.update({"choice": pt}), dialog.destroy()]
+                )
+            btn.pack(side="left", padx=5)
+
+        main.wait_window(dialog)
+        return result["choice"]
+
     def refresh_board():
         state = game_controller.get_state()
         move_list = state["move_list"]  # Use the history_list from the controller state
@@ -153,16 +195,44 @@ def run_app():
                 history_listbox.see(row_index)
 
     def handle_click(square):
-        game_controller.on_square_click(square)
+        selected = game_controller.selected_square
+        is_promotion_attempt = False
+        promotion_choice = None
+
+        if selected:
+            piece = game.board.get_piece_at(selected)
+            if piece and piece.type == "P":
+                rank = square[1]
+                if (piece.color == "W" and rank == "8") or (piece.color == "B" and rank == "1"):
+                    target_piece = game.board.get_piece_at(square)
+                    is_reselect = (
+                        target_piece and
+                        target_piece.color == game.current_turn and
+                        square != selected
+                    )
+                    if not is_reselect:
+                        is_promotion_attempt = True
+                        promotion_choice = ask_promotion_choice(piece.color)
+
+        if is_promotion_attempt:
+            if promotion_choice is not None:
+                game_controller.last_error = None
+                game_controller.try_move(square, promotion_choice)
+            else:
+                game_controller.selected_square = None  # Player cancelled dialog
+        else:
+            game_controller.on_square_click(square)
+
         refresh_board()
         update_status_label()
 
     def update_status_label():
+        color_name = {"W": "White", "B": "Black"}
         game_state = game_controller.get_state()
         selected_square = game_state["selected_square"] if game_state["selected_square"] else "-"
         replay_state = game_state["replay"]
         parts = [
-            f"Turn: {game_state['current_turn']}",
+            f"Turn: {color_name[game_state['current_turn']]}",
             f"Selected: {selected_square}",
         ]
 
@@ -172,7 +242,7 @@ def run_app():
         if game_state["is_draw"]:
             parts.append(f"Draw: {game_state['draw_reason'] or 'draw'}")
         elif game_state["game_over"]:
-            parts.append(f"Checkmate: {game_state['current_turn']} wins")
+            parts.append(f"Checkmate: {color_name[game_state['current_turn']]} wins")
         elif game_state["is_in_check"]:
             parts.append(f"Check")
 

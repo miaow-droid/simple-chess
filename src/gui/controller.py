@@ -37,7 +37,7 @@ class GameController:
             return True
         return False
     
-    def try_move(self, to_position):
+    def try_move(self, to_position, promotion_choice="Q"):
         """Attempt to move a piece from one position to another."""
         if self.selected_square:
             from_position = self.selected_square
@@ -47,7 +47,7 @@ class GameController:
                 return False
 
             try:
-                self.game.make_move(from_position, to_position)
+                self.game.make_move(from_position, to_position, promotion_choice)
                 self._sync_history_list()  # Update the history list after a successful move
                 self.selected_square = None
                 if self.game.replay_active:
