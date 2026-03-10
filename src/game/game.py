@@ -43,6 +43,7 @@ class Game:
         
         piece = self.board.get_piece_at(from_position)
         captured_piece = self.board.get_piece_at(to_position)
+        needs_disambiguation = self._if_san_disambiguation_needed(piece.type, to_position) if not castled else False # Determine if SAN disambiguation is needed for the move (not needed for castling)
         if piece is None:
             raise ValueError(f"No piece at position {from_position} to move.")
         
@@ -136,7 +137,8 @@ class Game:
             "was_en_passant": en_passant,
             "is_draw": self.is_draw,
             "is_in_check": self.is_in_check,
-            "is_checkmate": is_checkmate
+            "is_checkmate": is_checkmate,
+            "needs_disambiguation": needs_disambiguation,
         }
 
         self.move_history.append({
@@ -444,7 +446,7 @@ class Game:
         else:
             if move_info["piece"].type != "P" and not move_info["was_promotion"]:
                 san += move_info["piece"].type  # Add piece type for non-pawn moves
-                if self._if_san_disambiguation_needed(move_info["piece"].type, move_info["to"]):
+                if move_info.get("needs_disambiguation", False):
                     san += move_info["from"]  # Add disambiguation if needed
             if move_info["captured_piece"]:
                 if move_info["piece"].type == "P":
