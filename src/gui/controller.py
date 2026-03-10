@@ -5,6 +5,8 @@ class GameController:
         self.game = game
         self.selected_square = None
         self.last_error = None
+        self.history_list = []  # Store the full move list for GUI display
+        self._sync_history_list()  # Initialize the history list with the current game state
 
     def get_state(self):
         """Return the current state of the game."""
@@ -17,13 +19,13 @@ class GameController:
             "is_draw": self.game.is_draw,
             "draw_reason": self.game.draw_reason,
             "is_in_check": self.game.is_in_check,
-            "move_list": [move["san"] for move in self.game.move_history],         # SAN strings
+            "move_list": self.history_list,         # SAN strings
             "replay": {
                 "active": self.game.replay_active,
                 "index": self.game.replay_index,
                 "total": len(self.game.replay_notation)
             },
-            "last_error": self.last_error           # for invalid UI actions
+            "last_error": self.last_error,           # for invalid UI actions
         }
         return game_state
     
@@ -46,6 +48,7 @@ class GameController:
 
             try:
                 self.game.make_move(from_position, to_position)
+                self._sync_history_list()  # Update the history list after a successful move
                 self.selected_square = None
                 if self.game.replay_active:
                     self.game.replay_active = False  # Exit replay mode if a move is attempted
@@ -65,6 +68,7 @@ class GameController:
             self.game.undo_move()
             self.selected_square = None  # Clear selection after undo
             self.last_error = None  # Clear last error after undo
+            self._sync_history_list()  # Update the history list after undo
         except ValueError as e:
             print(f"Cannot undo: {e}")
             self.last_error = str(e)
@@ -74,6 +78,7 @@ class GameController:
         self.game.reset_game()
         self.selected_square = None
         self.last_error = None  # Clear last error on reset
+        self._sync_history_list()  # Update the history list after reset
     
     def load_notation(self, notation):
         """Load a game from SAN-lite notation."""
@@ -81,6 +86,7 @@ class GameController:
             self.game.load_notation(notation)
             self.selected_square = None
             self.last_error = None
+            self._sync_history_list()  # Update the history list after loading notation
             return True
         except ValueError as e:
             self.last_error = str(e)
@@ -92,6 +98,7 @@ class GameController:
             notation = self.game.export_notation()
             if not notation:
                 raise ValueError("No moves available to replay.")
+            self.history_list = notation.copy()  # Store the full move list for GUI display
             self.game.replay_start(notation)
             self.selected_square = None
             self.last_error = None
@@ -177,3 +184,7 @@ class GameController:
             else:
                 board_state[position] = None
         return board_state
+    
+    def _sync_history_list(self):
+        """Sync the history list with the game's move history."""
+        self.history_list = [move["san"] for move in self.game.move_history]

@@ -488,12 +488,15 @@ class Game:
         """Undo the last move made in the game."""
         if not self.move_history:
             raise ValueError("No moves to undo.")
+        if self.replay_active:
+            raise ValueError("Cannot undo moves while in replay mode.")
+        if self.game_over:
+            raise ValueError("Cannot undo moves after the game is over.")
         
         last_move = self.move_history.pop()  # Remove the last move from history
         self.position_history.pop()  # Remove the last position snapshot from position history
         from_position = last_move["from"]
         to_position = last_move["to"]
-        piece_type = last_move["piece_type"]
         piece_color = last_move["piece_color"]
         captured_piece_type = last_move["captured_piece_type"]
         captured_piece_color = last_move["captured_piece_color"]

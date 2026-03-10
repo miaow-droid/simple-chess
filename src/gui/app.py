@@ -104,7 +104,7 @@ style.configure(
 
 def refresh_board():
     state = game_controller.get_state()
-    move_list = state["move_list"]
+    move_list = state["move_list"]  # Use the history_list from the controller state
     selected_square = state["selected_square"]
     legal_moves = state["legal_moves"]
     for square, button in square_buttons.items():
