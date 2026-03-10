@@ -134,10 +134,14 @@ def handle_click(square):
 def update_status_label():
     game_state = game_controller.get_state()
     selected_square = game_state["selected_square"] if game_state["selected_square"] else "-"
+    replay_state = game_state["replay"]
     parts = [
         f"Turn: {game_state['current_turn']}",
         f"Selected: {selected_square}",
     ]
+
+    if replay_state["total"] > 0:
+        parts.append(f"Replay: {replay_state['index']}/{replay_state['total']}")
 
     if game_state["is_draw"]:
         parts.append(f"Draw: {game_state['draw_reason'] or 'draw'}")
@@ -206,11 +210,40 @@ def handle_reset():
     refresh_board()
     main.label.config(text="New Game")
 
+def handle_replay_start():
+    game_controller.replay_start()
+    refresh_board()
+    update_status_label()
+
+def handle_replay_previous():
+    game_controller.replay_previous()
+    refresh_board()
+    update_status_label()
+
+def handle_replay_next():
+    game_controller.replay_next()
+    refresh_board()
+    update_status_label()
+
+def handle_replay_end():
+    game_controller.replay_end()
+    refresh_board()
+    update_status_label()
+
 undo_button = ttk.Button(controls, text="Undo", command=handle_undo, style="Replay.TButton")
 undo_button.pack(side="left", padx=5)
 reset_button = ttk.Button(controls, text="Reset", command=handle_reset, style="Replay.TButton")
 reset_button.pack(side="left", padx=5)
+replay_start_button = ttk.Button(controls, text="|<", command=handle_replay_start, style="Replay.TButton")
+replay_start_button.pack(side="left", padx=5)
+replay_previous_button = ttk.Button(controls, text="<", command=handle_replay_previous, style="Replay.TButton")
+replay_previous_button.pack(side="left", padx=5)
+replay_next_button = ttk.Button(controls, text=">", command=handle_replay_next, style="Replay.TButton")
+replay_next_button.pack(side="left", padx=5)
+replay_end_button = ttk.Button(controls, text=">|", command=handle_replay_end, style="Replay.TButton")
+replay_end_button.pack(side="left", padx=5)
 
 refresh_board()  # Initial board setup
+update_status_label()
 
 main.mainloop()

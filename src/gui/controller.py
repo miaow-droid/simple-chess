@@ -39,9 +39,18 @@ class GameController:
         """Attempt to move a piece from one position to another."""
         if self.selected_square:
             from_position = self.selected_square
+            if self.game.replay_active and self.game.replay_index < len(self.game.replay_notation):
+                self.last_error = "Cannot make moves while not at the end of replaying."
+                self.selected_square = None
+                return False
+
             try:
                 self.game.make_move(from_position, to_position)
                 self.selected_square = None
+                if self.game.replay_active:
+                    self.game.replay_active = False  # Exit replay mode if a move is attempted
+                    self.game.replay_notation = []  # Clear replay notation
+                    self.game.replay_index = 0  # Reset replay index
                 return True
             except ValueError as e:
                 print(f"Invalid move: {e}")
@@ -68,23 +77,76 @@ class GameController:
     
     def load_notation(self, notation):
         """Load a game from SAN-lite notation."""
-        pass
+        try:
+            self.game.load_notation(notation)
+            self.selected_square = None
+            self.last_error = None
+            return True
+        except ValueError as e:
+            self.last_error = str(e)
+            return False
     
     def replay_start(self):
         """Start replaying the game from the beginning."""
-        pass # This method will be implemented to initiate replay mode, resetting the game state to the beginning of the move list.
+        try:
+            notation = self.game.export_notation()
+            if not notation:
+                raise ValueError("No moves available to replay.")
+            self.game.replay_start(notation)
+            self.selected_square = None
+            self.last_error = None
+            return True
+        except ValueError as e:
+            self.last_error = str(e)
+            return False
 
     def replay_next(self):
         """Replay the next move in the game."""
-        pass # This method will be implemented to advance the replay to the next move, updating the game state and board accordingly.
+        try:
+            if not self.game.replay_notation:
+                notation = self.game.export_notation()
+                if not notation:
+                    raise ValueError("No moves available to replay.")
+                self.game.replay_start(notation)
+            self.game.replay_next()
+            self.selected_square = None
+            self.last_error = None
+            return True
+        except ValueError as e:
+            self.last_error = str(e)
+            return False
     
     def replay_previous(self):
         """Replay the previous move in the game."""
-        pass # This method will be implemented to go back to the previous move in the replay, updating the game state and board accordingly.
+        try:
+            if not self.game.replay_notation:
+                notation = self.game.export_notation()
+                if not notation:
+                    raise ValueError("No moves available to replay.")
+                self.game.replay_start(notation)
+            self.game.replay_previous()
+            self.selected_square = None
+            self.last_error = None
+            return True
+        except ValueError as e:
+            self.last_error = str(e)
+            return False
 
     def replay_end(self):
         """Replay the game to the end."""
-        pass # This method will be implemented to fast-forward the replay to the end of the move list, updating the game state and board accordingly.
+        try:
+            if not self.game.replay_notation:
+                notation = self.game.export_notation()
+                if not notation:
+                    raise ValueError("No moves available to replay.")
+                self.game.replay_start(notation)
+            self.game.replay_end()
+            self.selected_square = None
+            self.last_error = None
+            return True
+        except ValueError as e:
+            self.last_error = str(e)
+            return False
 
     def on_square_click(self, position):
         """Handle a square click event from the GUI."""
