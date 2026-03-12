@@ -150,9 +150,9 @@ class TestGameOverDialogState(unittest.TestCase):
 
     # ------------------------------------------------------------------
     # Test 5 — Game over at end of replay (index == total)
-    # Dialog SHOULD open in this case.
+    # Dialog must NOT open because replay mode is still active.
     # ------------------------------------------------------------------
-    def test_game_over_at_end_of_replay_dialog_should_open(self):
+    def test_game_over_at_end_of_replay_dialog_must_not_open(self):
         self._play_fools_mate()
         self.controller.replay_start()   # enters replay, index=0
         self.controller.replay_end()     # advances to the last position
@@ -170,7 +170,7 @@ class TestGameOverDialogState(unittest.TestCase):
         self.controller.replay_start()   # enters replay, index=0
         self.controller.replay_next()    # advance one step
         state = self.controller.get_state()
-        # The dialog guard condition: skip if active AND index < total
+        # Replay guard condition for UI: skip whenever replay is active.
         self.assertTrue(state["replay"]["active"])
         self.assertLess(state["replay"]["index"], state["replay"]["total"])
 
@@ -202,6 +202,39 @@ class TestGameOverDialogState(unittest.TestCase):
         # f2 and g2 pawns should be back on their starting squares
         self.assertIsNotNone(board.get("f2"))
         self.assertIsNotNone(board.get("g2"))
+
+    def test_get_state_exposes_fifty_move_draw_reason(self):
+        self.game.game_over = True
+        self.game.is_draw = True
+        self.game.draw_reason = "Fifty-move rule"
+
+        state = self.controller.get_state()
+
+        self.assertTrue(state["game_over"])
+        self.assertTrue(state["is_draw"])
+        self.assertEqual(state["draw_reason"], "Fifty-move rule")
+
+    def test_get_state_exposes_threefold_draw_reason(self):
+        self.game.game_over = True
+        self.game.is_draw = True
+        self.game.draw_reason = "Threefold repetition"
+
+        state = self.controller.get_state()
+
+        self.assertTrue(state["game_over"])
+        self.assertTrue(state["is_draw"])
+        self.assertEqual(state["draw_reason"], "Threefold repetition")
+
+    def test_get_state_exposes_insufficient_material_draw_reason(self):
+        self.game.game_over = True
+        self.game.is_draw = True
+        self.game.draw_reason = "Insufficient material"
+
+        state = self.controller.get_state()
+
+        self.assertTrue(state["game_over"])
+        self.assertTrue(state["is_draw"])
+        self.assertEqual(state["draw_reason"], "Insufficient material")
 
 
 if __name__ == "__main__":

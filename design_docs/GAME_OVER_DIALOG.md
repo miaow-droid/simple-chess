@@ -16,11 +16,10 @@ the following conditions before opening:
 | Condition | Source in `get_state()` |
 |---|---|
 | The game is over | `state["game_over"] == True` |
-| Not currently mid-replay | `state["replay"]["active"] == False` OR `state["replay"]["index"] == state["replay"]["total"]` |
+| Replay mode is not active | `state["replay"]["active"] == False` |
 
-The second condition is the key guard: if the user is stepping through a loaded game in
-replay mode, the dialog must **not** open even if the final position is checkmate. The
-dialog only opens during a **live** game.
+The replay guard is strict: if replay mode is active, the dialog must **not** open.
+The dialog only opens during a **live** game.
 
 ---
 
@@ -123,7 +122,7 @@ Inside `refresh_board()`, **after** the board and status label have already been
 add a check at the very end of the function:
 
 ```python
-if state["game_over"] and not (state["replay"]["active"] and state["replay"]["index"] < state["replay"]["total"]):
+if state["game_over"] and not state["replay"]["active"]:
     show_game_over_dialog(_build_game_over_message(state))
 ```
 
@@ -187,7 +186,7 @@ then assert on `get_state()`.
 | 2 | Checkmate — black delivers mate | `game_over == True`, `is_draw == False`, `current_turn == "B"` |
 | 3 | Stalemate | `game_over == True`, `is_draw == True`, `draw_reason == "Stalemate"` |
 | 4 | Game over during live play (not replay) | `replay["active"] == False` |
-| 5 | Game over at end of replay (`replay_index == total`) | `replay["active"] == True`, `replay["index"] == replay["total"]` — dialog **should** open |
+| 5 | Game over at end of replay (`replay_index == total`) | `replay["active"] == True`, `replay["index"] == replay["total"]` — dialog must **not** open |
 | 6 | Game over mid-replay (`replay_index < total`) | `replay["active"] == True`, `replay["index"] < replay["total"]` — dialog must **not** open |
 | 7 | After Replay button: replay mode is active | Call `replay_start()` on a finished game; assert `replay["active"] == True`, `replay["index"] == 0`, `replay["total"] > 0` |
 | 8 | After Replay button: board is at starting position | After `replay_start()`, assert no pieces have moved from their start squares |
@@ -198,17 +197,36 @@ Test 6 is the most important: it directly verifies the replay-mode guard.
 
 ## 11. Acceptance Criteria
 
-- [ ] Dialog opens after checkmate in a live game
-- [ ] Dialog opens after stalemate in a live game
-- [ ] Dialog opens after each draw rule in a live game
-- [ ] Dialog does **not** open while mid-replay (index < total)
-- [ ] **New Game** button resets the board and closes the dialog
-- [ ] **Save Game** button opens the file-picker; dialog stays open regardless of whether the user saves or cancels
-- [ ] **Replay** button closes the dialog and enters replay mode at move 0 of the finished game
-- [ ] **Close** button closes only the dialog; board stays frozen
-- [ ] Dialog headline matches the outcome exactly (Section 3 table)
-- [ ] Dialog visual style matches the rest of the app (dark bg, white text, `Replay.TButton`)
-- [ ] Dialog is centered over the main window
-- [ ] Dialog is modal (main window is unclickable while dialog is open)
-- [ ] Opening a new game resets the dialog-shown flag so it can fire again next game
-- [ ] All new controller tests pass with 0 failures
+- [x] Dialog opens after checkmate in a live game
+- [x] Dialog opens after stalemate in a live game
+- [x] Dialog opens after each draw rule in a live game
+- [x] Dialog does **not** open while replay is active (including replay end)
+- [x] **New Game** button resets the board and closes the dialog
+- [x] **Save Game** button opens the file-picker; dialog stays open regardless of whether the user saves or cancels
+- [x] **Replay** button closes the dialog and enters replay mode at move 0 of the finished game
+- [x] **Close** button closes only the dialog; board stays frozen
+- [x] Dialog headline matches the outcome exactly (Section 3 table)
+- [x] Dialog visual style matches the rest of the app (dark bg, white text, `Replay.TButton`)
+- [x] Dialog is centered over the main window
+- [x] Dialog is modal (main window is unclickable while dialog is open)
+- [x] Opening a new game resets the dialog-shown flag so it can fire again next game
+- [x] All new controller tests pass with 0 failures
+
+---
+
+## 12. Manual QA Checklist (Runbook)
+
+Use this table when validating a new change to dialog behavior.
+
+| ID | Setup | Action | Expected |
+|---|---|---|---|
+| QA-01 | Start a new game | Play Fool's Mate (`f3 e5 g4 Qh4#`) | Dialog opens once with checkmate winner message |
+| QA-02 | From a fresh game | Play into stalemate | Dialog opens once with stalemate/draw message |
+| QA-03 | Finish any game and open dialog | Click **Save Game**, cancel file picker | Dialog remains open; board position unchanged |
+| QA-04 | Finish any game and open dialog | Click **Save Game**, save successfully | Success feedback appears; dialog remains open |
+| QA-05 | Finish any game and open dialog | Click **Replay** | Dialog closes; replay mode starts at `0/total` |
+| QA-06 | In replay mode after QA-05 | Step with `<`, `>`, `>|` | Dialog never opens while replay is active |
+| QA-07 | In replay mode at `index == total` | Stay in replay mode | Dialog still does not open |
+| QA-08 | Finish any game and open dialog | Click **New Game** | Dialog closes; board resets; feature can trigger again next game |
+| QA-09 | Finish any game and open dialog | Click **Close** or title bar `X` | Dialog closes only; final board stays visible |
+| QA-10 | Finish any game then load a different game | Use `Game > Load` | Dialog flag resets; dialog behavior is correct for loaded game |
