@@ -12,6 +12,8 @@ This feature adds AI-powered opponents to Simple Chess, allowing players to chal
 - [ ] Player can select an AI opponent before starting a game
 - [ ] Multiple AI engines/models available (e.g., Stockfish, random, simple heuristic)
 - [ ] Multiple difficulty levels per engine (e.g., Stockfish ELO 1000, 1600, 2000)
+- [ ] Optional LLM Opponent mode available
+- [ ] LLM Opponent uses the user's own account (OpenAI or GitHub) for model access
 - [ ] Game modes: Player vs AI, AI vs AI
 - [ ] AI makes legal moves respecting all chess rules
 - [ ] Game ends correctly after AI move (e.g., if AI move leads to checkmate)
@@ -56,6 +58,18 @@ Each engine is wrapped in a unified interface (see Section 5). At game setup, th
 - Difficulty level (affects search depth, time budget, or eval heuristics)
 - UCI binary path (for UCI engines; `None` for built-in engines)
 - (Optional) Opening book preference or other UCI options
+
+### 3.3 LLM Models (Cloud, User-Owned Access)
+
+LLM Opponent is treated as a separate model family from UCI engines.
+
+| Provider | Access | Account Owner | Notes |
+|---|---|---|---|
+| **OpenAI** | API key / OAuth token | End user | User supplies their own credentials in-app |
+| **GitHub Models** | GitHub login/token | End user | User signs in with their GitHub account |
+
+Design rule: the app must not rely on a developer-owned shared key for LLM Opponent mode.
+Each user authorizes their own account and quota.
 
 ---
 
@@ -167,6 +181,25 @@ class UCIEngine(AIEngine):
 - Difficulty levels: 1=greedy (pick highest immediate score), 2=lookahead 1 move, 3=lookahead 1 move for both sides (minimax-ish)
 - Fast, no engine binary required
 
+#### 5.2.6 LLM Opponent (Cloud, User Account)
+- Uses model access from the user's authenticated OpenAI or GitHub account
+- Must receive board state every turn to minimize hallucinations
+- Must be constrained to pick exactly one move from legal moves provided by the engine
+
+Per-turn payload (token-efficient):
+- `FEN`
+- Side to move
+- Legal SAN moves list
+- Difficulty/style profile (e.g., casual, tactical, aggressive)
+
+Per-turn response contract:
+- Return exactly one SAN move from provided legal moves
+- No additional text in strict mode
+
+Validation and fallback:
+- If response is invalid, timed out, or not in legal list, fallback to a legal move strategy (Random or Stockfish)
+- Log fallback reason for transparency
+
 ### 5.3 Game Controller Extension
 
 Extend `GameController` with AI support:
@@ -249,6 +282,23 @@ When saving a game with AI:
 
 When loading, reconstruct the same `GameController` with the stored AI settings.
 
+### 5.6 Authentication and Credential Ownership
+
+LLM Opponent authentication requirements:
+- User can connect either OpenAI account or GitHub account
+- Credentials/tokens are user-owned and tied to their account
+- App stores credentials securely (OS credential vault preferred); never commit to repo
+- App provides explicit sign-out/disconnect action
+
+Credential policy:
+- No hardcoded API keys
+- No project-wide shared paid key required for gameplay
+- If user is not authenticated, LLM Opponent options are disabled with clear UI message
+
+Privacy policy (design-level):
+- Only send minimum turn context needed for move selection
+- Do not send local file paths or unrelated user data to model providers
+
 ---
 
 ## 6. UI / UX Flow
@@ -278,8 +328,11 @@ When app launches, show:
 │               │ Stockfish           │   │
 │               │ Random              │   │
 │               │ Simple Heuristic    │   │
+│               │ LLM Opponent        │   │
 │               └─────────────────────┘   │
 │    Difficulty: ░░░░░░░░░░░░░░░░░░░░ 10 │
+│    Provider: OpenAI / GitHub            │
+│    [ Sign in ]  [ Disconnect ]          │
 │                                         │
 │  [ Start ]  [ Cancel ]                  │
 └─────────────────────────────────────────┘
@@ -291,6 +344,7 @@ Status bar at top shows:
 - Whose turn: "White's turn" → "AI thinking..." (if AI) → "Black's move"
 - Move counter: "Move 15"
 - Game mode: "Player (Black) vs AI (Stockfish, Hard)"
+- LLM auth status when selected: "LLM: Connected (OpenAI)" or "LLM: Not connected"
 
 ---
 
@@ -348,7 +402,18 @@ Status bar at top shows:
 - [ ] Update README with multi-engine setup instructions
 - [ ] Test Leela vs Stockfish, Leela vs Random, etc.
 
-### Phase 4: Enhancements (Post-MVP)
+### Phase 4: LLM Opponent Mode
+**Goal:** Add cloud LLM play using user-owned account credentials
+
+- [ ] Implement `LLMEngine` adapter with strict move-output schema
+- [ ] Add provider selection (OpenAI, GitHub) in setup dialog
+- [ ] Implement sign-in/sign-out flows and secure token storage
+- [ ] Build token-efficient per-turn prompt protocol (`FEN` + legal SAN list)
+- [ ] Add invalid-response fallback to Random/Stockfish
+- [ ] Add model timeout and retry policy
+- [ ] Add UI status indicators: connected/disconnected, provider, fallback events
+
+### Phase 5: Enhancements (Post-MVP)
 - [ ] Save/load AI selection to JSON (versioned format)
 - [ ] Main menu with "Continue Game" option
 - [ ] AI vs AI auto-play speed control (slider: instant, 1 sec/move, 2 sec/move)
@@ -368,6 +433,8 @@ Status bar at top shows:
 | SimpleHeuristic prioritizes capture | Position with 2 legal moves (capture or quiet); assert capture chosen |
 | SimpleHeuristic handles checkmate move | Position where only move is checkmate; assert that move chosen |
 | Stockfish picks strong move (optional) | Play Stockfish at depth 5 vs starting position; assert e4 or d4 (standard openings) |
+| LLM move is validated | Mock LLM response not in legal list; assert fallback strategy used |
+| LLM timeout fallback | Mock timeout; assert engine selects fallback legal move |
 
 ### 8.2 Integration Tests: GameController + AI
 
@@ -377,6 +444,8 @@ Status bar at top shows:
 | RandomAI vs RandomAI completes | Play both sides with Random; verify game terminates |
 | Load game with AI preserves choices | Save game with StockfishAI, load back; assert engine name matches |
 | AI move respects all rules | Play AI in position with castling/en passant available; verify legality |
+| LLM auth required | Select LLM without login; assert game start blocked with clear message |
+| LLM provider flow | Sign in via OpenAI/GitHub mock and start game; assert engine becomes available |
 
 ### 8.3 GUI Tests (Manual / E2E)
 
@@ -406,6 +475,11 @@ Status bar at top shows:
 | `src/tests/test_controller_ai.py` | New: Integration tests for GameController + AI | 1 |
 | `requirements.txt` | Add chess library and/or python-chess (Phase 1+) | 1 |
 | `README.md` | Add AI setup instructions; multi-engine doc (Phase 3) | 1, 3 |
+| `src/ai/llm_engine.py` | New: `LLMEngine` adapter with strict move contract and fallback hooks | 4 |
+| `src/ai/auth.py` | New: Provider login/token management for OpenAI/GitHub | 4 |
+| `src/tests/test_llm_engine.py` | New: LLM response validation, timeout, and fallback tests | 4 |
+| `src/tests/test_auth_flow.py` | New: Login/logout and provider availability tests | 4 |
+| `README.md` | Add LLM account setup (OpenAI/GitHub) and privacy notes | 4 |
 | `design_docs/AI_OPPONENT_FEATURE.md` | This file | All |
 
 ---
@@ -417,6 +491,9 @@ Status bar at top shows:
 - [ ] AI engine picks a legal move in every position
 - [ ] Easy AI (difficulty 1) vs Easy AI completes a full game
 - [ ] Hard AI (Stockfish depth 15+) makes reasonably strong moves
+- [ ] User can sign in with OpenAI or GitHub to enable LLM Opponent
+- [ ] LLM Opponent is disabled when user is not authenticated
+- [ ] LLM move selection always resolves to a legal move (direct or fallback)
 - [ ] Game-over dialog appears correctly after AI delivers checkmate
 - [ ] Save game captures AI engine type and difficulty
 - [ ] Load game with AI restores the setup correctly
@@ -442,4 +519,10 @@ Status bar at top shows:
 
 5. **Can player switch difficulty mid-game?**
    - *Proposed:* Not for MVP; future feature
+
+6. **How much context should be sent to the LLM each turn?**
+    - *Proposed:* Send only `FEN`, side-to-move, legal SAN list, and style profile. Do not send full move history by default.
+
+7. **Who pays for and controls LLM usage?**
+    - *Proposed:* End user via their own OpenAI or GitHub account. No developer-shared key.
 
