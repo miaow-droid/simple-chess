@@ -4,6 +4,7 @@ from tkinter import ttk, filedialog, messagebox
 import ctypes
 from ctypes import wintypes
 import sys
+from datetime import datetime
 IS_WINDOWS = sys.platform.startswith("win")
 if IS_WINDOWS:
     import winreg
@@ -505,8 +506,10 @@ def run_app():
     replay_button_stype.map("Replay.TButton", background=[("active", GLOBAL_BUTTON_STYLE["hovered"])], foreground=[("active", "#000")])  # Set the background color for replay buttons when active to a medium gray and the text color to black
 
     def handle_save():
+        default_filename = f"Game_{datetime.now().strftime('%d_%m_%Y_%H_%M_%S')}.json"
         file_path = filedialog.asksaveasfilename(
             defaultextension=".json",
+            initialfile=default_filename,
             filetypes=[("JSON files", "*.json"), ("All files", "*.*")],
             title="Save Game State"
         )
